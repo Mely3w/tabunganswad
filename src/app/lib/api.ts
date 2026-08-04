@@ -13,8 +13,12 @@ function getToken() {
   return window.localStorage.getItem(TOKEN_KEY);
 }
 
+// Tambahkan baris ini tepat di atas fungsi request
+const API_BASE_URL = "http://localhost:3001"; 
+
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const response = await fetch(path, {
+  // Ubah bagian fetch-nya menjadi seperti ini
+  const response = await fetch(`${API_BASE_URL}${path}`, {
     ...options,
     headers: {
       "Content-Type": "application/json",
@@ -22,6 +26,11 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
       ...options.headers,
     },
   });
+  
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(body.message || "Permintaan ke server gagal.");
+  return body as T;
+}
   const body = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(body.message || "Permintaan ke server gagal.");
   return body as T;
