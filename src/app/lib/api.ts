@@ -9,15 +9,17 @@ export type AuthUser = {
 
 const TOKEN_KEY = "tabungan-swad-token";
 
+// Menggunakan URL dari environment variable, atau otomatis ke localhost jika sedang di development
+const configuredApiUrl = import.meta.env.VITE_API_URL?.trim();
+const API_BASE_URL = configuredApiUrl 
+  ? configuredApiUrl.replace(/\/$/, "") 
+  : "http://localhost:3001";
+
 function getToken() {
   return window.localStorage.getItem(TOKEN_KEY);
 }
 
-// Tambahkan baris ini tepat di atas fungsi request
-const API_BASE_URL = "http://localhost:3001"; 
-
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
-  // Ubah bagian fetch-nya menjadi seperti ini
   const response = await fetch(`${API_BASE_URL}${path}`, {
     ...options,
     headers: {
@@ -27,10 +29,6 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     },
   });
   
-  const body = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(body.message || "Permintaan ke server gagal.");
-  return body as T;
-}
   const body = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(body.message || "Permintaan ke server gagal.");
   return body as T;
