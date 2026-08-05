@@ -223,14 +223,22 @@ migrate();
 await seed();
 app.listen(port, () => console.log(`API Tabungan Swad berjalan di http://localhost:${port}`));
 
-// Pastikan route ini ada di backend Anda
 app.post('/api/admin/students', async (req, res) => {
   try {
     const { name, username, className, password } = req.body;
     
-    // Simpan data siswa ke database Anda di sini...
-    
-    res.status(200).json({ message: `Siswa ${name} berhasil ditambahkan!` });
+    // Masukkan data siswa ke database sqlite Anda dengan status active = 1 (aktif)
+    db.run(
+      `INSERT INTO users (name, username, class_name, password, role, active, balance) VALUES (?, ?, ?, ?, 'student', 1, 0)`,
+      [name, username, className, password],
+      function(err) {
+        if (err) {
+          console.error(err);
+          return res.status(500).json({ message: "Gagal menyimpan ke database." });
+        }
+        res.status(200).json({ message: `Siswa ${name} berhasil ditambahkan!` });
+      }
+    );
   } catch (error) {
     res.status(500).json({ message: "Gagal menyimpan ke database." });
   }
