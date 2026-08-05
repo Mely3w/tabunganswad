@@ -6,7 +6,14 @@
   "scripts": {
     "build": "vite build",
     "dev": "vite",
-    "server": "node server/index.js"
+    "server": "node server/index.js",
+    "cf:login": "wrangler login",
+    "cf:dev": "wrangler dev",
+    "cf:d1:create": "wrangler d1 create tabungan-swad",
+    "cf:d1:migrate:local": "wrangler d1 migrations apply tabungan-swad --local",
+    "cf:d1:migrate": "wrangler d1 migrations apply tabungan-swad --remote",
+    "cf:secret": "wrangler secret put JWT_SECRET",
+    "cf:deploy": "wrangler deploy"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.0",
@@ -77,7 +84,8 @@
     "@tailwindcss/vite": "4.1.12",
     "@vitejs/plugin-react": "4.7.0",
     "tailwindcss": "4.1.12",
-    "vite": "6.3.5"
+    "vite": "6.3.5",
+    "wrangler": "^4.118.0"
   },
   "peerDependencies": {
     "react": "18.3.1",
