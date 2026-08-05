@@ -37,12 +37,17 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 export async function login(username: string, password: string, role: AuthUser["role"]) {
   const response = await request<{ token: string; user: AuthUser }>("/api/auth/login", {
     method: "POST",
-    body: JSON.stringify({ username, password, role }),
+    body: JSON.stringify({ 
+      username, 
+      nis: username, // Mengirimkan 'nis' secara otomatis berjaga-jaga jika backend mencarinya lewat kolom nis
+      password, 
+      role 
+    }),
   });
+  
   window.localStorage.setItem(TOKEN_KEY, response.token);
   return response.user;
 }
-
 export async function getCurrentUser() {
   return request<{ user: AuthUser }>("/api/auth/me");
 }
