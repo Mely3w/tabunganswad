@@ -71,6 +71,13 @@ const contacts = [
   { id: 4, name: "Dimas Prayoga", account: "1089-6789", initial: "DP", color: "#F59E0B" },
 ];
 
+const navItems = [
+  { id: "home" as Screen, label: "Beranda", icon: Home },
+  { id: "transfer" as Screen, label: "Transfer", icon: ArrowLeftRight },
+  { id: "history" as Screen, label: "Riwayat", icon: Clock },
+  { id: "profile" as Screen, label: "Profil", icon: User },
+];
+
 function formatRupiah(amount: number) {
   return "Rp " + amount.toLocaleString("id-ID");
 }
@@ -1933,6 +1940,7 @@ function BayarModal({ onClose, balance, onPayment }: { onClose: () => void; bala
 }
 
 function HomeScreen({
+  user,
   onTransfer,
   balance,
   transactions,
@@ -1940,6 +1948,7 @@ function HomeScreen({
   onRefresh,
   onTransaction,
 }: {
+  user: AuthUser;
   onTransfer: () => void;
   balance: number;
   transactions: Transaction[];
@@ -1970,8 +1979,8 @@ function HomeScreen({
       <div className="flex items-center justify-between px-4 pt-7 pb-5">
         <div>
           <p className="text-[10px] font-bold tracking-widest uppercase" style={{ color: "#2563EB" }}>TABUNGAN SWAD</p>
-          <p className="text-xs text-muted-foreground font-medium">Halo, Abigail 👋</p>
-          <h1 className="text-lg font-bold text-foreground leading-tight">Abigail Nirwana</h1>
+          <p className="text-xs text-muted-foreground font-medium">Halo, {user.name.split(" ")[0]} 👋</p>
+          <h1 className="text-lg font-bold text-foreground leading-tight">{user.name}</h1>
         </div>
         <div className="relative">
           <button
@@ -1990,16 +1999,74 @@ function HomeScreen({
         </div>
       </div>
 
-      {/* Balance Card */}
-      <BalanceCard balance={balance} visible={balanceVisible} onToggle={() => setBalanceVisible(!balanceVisible)} lastUpdated={lastUpdated} onRefresh={onRefresh} totalMasuk={totalMasuk} totalKeluar={totalKeluar} />
+      {/* Balance Card - Menggunakan username sebagai nomor rekening dinamis */}
+      <div className="mx-4 rounded-2xl overflow-hidden shadow-lg" style={{ background: "linear-gradient(135deg, #1A3A6B 0%, #2563EB 60%, #3B82F6 100%)" }}>
+        <div className="px-6 pt-6 pb-4">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-blue-200 text-xs font-medium tracking-wide uppercase">Saldo Tabungan</span>
+            <div className="flex items-center gap-1">
+              <button onClick={onRefresh} aria-label="Perbarui saldo" className="text-blue-200 hover:text-white transition-colors p-1">
+                <RefreshCw size={15} />
+              </button>
+              <button onClick={() => setBalanceVisible(!balanceVisible)} aria-label={balanceVisible ? "Sembunyikan saldo" : "Tampilkan saldo"} className="text-blue-200 hover:text-white transition-colors p-1">
+                {balanceVisible ? <Eye size={16} /> : <EyeOff size={16} />}
+              </button>
+            </div>
+          </div>
+          <div className="text-white text-3xl font-bold tracking-tight mt-1">
+            {balanceVisible ? formatRupiah(balance) : "Rp ••••••"}
+          </div>
+          <div className="mt-4 flex items-center gap-2">
+            <CreditCard size={14} className="text-blue-300" />
+            <span className="text-blue-200 text-xs font-mono tracking-widest">{user.username}</span>
+          </div>
+          <div className="mt-2 flex items-center gap-1.5 text-[10px] text-blue-200">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-pulse" />
+            <span>Diperbarui {lastUpdated.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}</span>
+          </div>
+        </div>
+        <div className="flex border-t border-white/10">
+          <div className="flex-1 px-6 py-3 text-center border-r border-white/10">
+            <div className="text-blue-200 text-xs mb-0.5">Masuk Bulan Ini</div>
+            <div className="text-white text-sm font-semibold">+{formatRupiah(totalMasuk)}</div>
+          </div>
+          <div className="flex-1 px-6 py-3 text-center">
+            <div className="text-blue-200 text-xs mb-0.5">Keluar Bulan Ini</div>
+            <div className="text-white text-sm font-semibold">-{formatRupiah(totalKeluar)}</div>
+          </div>
+        </div>
+      </div>
 
-      {/* Quick Actions */}
       <QuickActions onTransfer={onTransfer} onTabung={() => setTabungOpen(true)} onBayar={() => setBayarOpen(true)} onTarik={() => setTarikOpen(true)} />
 
-      {/* Live balance, kept close to the savings reminder */}
-      <LiveBalanceInfo balance={balance} lastUpdated={lastUpdated} />
+      {/* Live Balance Info */}
+      <div className="mx-4 mt-5 rounded-2xl border border-blue-100 bg-gradient-to-br from-blue-50 to-white px-4 py-4 shadow-sm">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-10 h-10 rounded-xl bg-white border border-blue-100 flex items-center justify-center shadow-sm flex-shrink-0">
+              <CreditCard size={18} color="#2563EB" />
+            </div>
+            <div>
+              <div className="flex items-center gap-1.5">
+                <p className="text-xs font-semibold text-blue-950">Saldo Real-Time</p>
+                <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-1.5 py-0.5 text-[9px] font-bold text-green-700">
+                  <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" /> AKTIF
+                </span>
+              </div>
+              <p className="text-xl font-bold tracking-tight text-foreground mt-1">{formatRupiah(balance)}</p>
+            </div>
+          </div>
+          <div className="text-right pt-0.5 flex-shrink-0">
+            <p className="text-[10px] text-muted-foreground">Diperbarui</p>
+            <p className="text-xs font-semibold text-blue-800 mt-0.5">{lastUpdated.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}</p>
+          </div>
+        </div>
+        <div className="mt-3 pt-3 border-t border-blue-100 flex items-center justify-between text-[11px]">
+          <span className="text-muted-foreground">Rekening Tabungan Swad</span>
+          <span className="font-mono font-semibold text-blue-900">{user.username}</span>
+        </div>
+      </div>
 
-      {/* Reminder Card */}
       <ReminderCard config={reminderConfig} onOpen={() => setReminderOpen(true)} />
 
       {/* Promo Banner */}
@@ -2028,16 +2095,9 @@ function HomeScreen({
         </div>
       </div>
 
-      {/* Panel Notifikasi */}
       {notifOpen && <NotifPanel onClose={() => setNotifOpen(false)} />}
-
-      {/* Modal Bayar */}
       {bayarOpen && <BayarModal onClose={() => setBayarOpen(false)} balance={balance} onPayment={onTransaction} />}
-
-      {/* Modal Tarik */}
       {tarikOpen && <TarikModal onClose={() => setTarikOpen(false)} />}
-
-      {/* Modal Reminder */}
       {reminderOpen && (
         <ReminderModal
           config={reminderConfig}
@@ -2045,13 +2105,10 @@ function HomeScreen({
           onClose={() => setReminderOpen(false)}
         />
       )}
-
-      {/* Modal Tabung */}
       {tabungOpen && <TabungModal onClose={() => setTabungOpen(false)} onDeposit={(amount) => onTransaction({ name: "Setoran Tabungan", type: "in", amount, category: "Top Up" })} />}
     </div>
   );
 }
-
 function TransferScreen({ balance, onTransfer }: { balance: number; onTransfer: (entry: NewTransaction) => void }) {
   const [step, setStep] = useState<"select" | "amount" | "confirm" | "success">("select");
   const [selected, setSelected] = useState<typeof contacts[0] | null>(null);
@@ -2327,7 +2384,7 @@ function HistoryScreen({ transactions }: { transactions: Transaction[] }) {
 
 type ProfilePanel = "rekening" | "keamanan" | "aktivitas" | "bantuan" | null;
 
-function ProfileScreen({ balance, onLogout }: { balance: number; onLogout: () => void }) {
+function ProfileScreen({ user, balance, onLogout }: { user: AuthUser; balance: number; onLogout: () => void }) {
   const [panel, setPanel] = useState<ProfilePanel>(null);
   const menuItems = [
     { id: "rekening" as const, label: "Informasi Rekening", subtitle: "Nomor rekening dan status akun", icon: CreditCard, color: "#2563EB" },
@@ -2336,15 +2393,17 @@ function ProfileScreen({ balance, onLogout }: { balance: number; onLogout: () =>
     { id: "bantuan" as const, label: "Bantuan", subtitle: "Hubungi petugas Tabungan Swad", icon: Bell, color: "#16A34A" },
   ];
 
+  const initials = user.name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
+
   const panelContent: Record<Exclude<ProfilePanel, null>, { title: string; text: string; rows: { label: string; value: string }[] }> = {
     rekening: {
       title: "Informasi Rekening",
       text: "Data rekening Tabungan Swad kamu.",
       rows: [
-        { label: "Nama pemilik", value: "Abigail Nirwana" },
-        { label: "No. rekening", value: "1023 - 9182" },
+        { label: "Nama pemilik", value: user.name },
+        { label: "No. rekening", value: user.username },
         { label: "Jenis akun", value: "Tabungan Swad" },
-        { label: "Status", value: "Aktif" },
+        { label: "Status", value: user.active ? "Aktif" : "Menunggu" },
       ],
     },
     keamanan: {
@@ -2393,11 +2452,11 @@ function ProfileScreen({ balance, onLogout }: { balance: number; onLogout: () =>
       {/* Profile Card */}
       <div className="mx-4 rounded-2xl px-5 py-5 mb-3 flex items-center gap-4 text-white" style={{ background: "linear-gradient(135deg, #1A3A6B, #2563EB)" }}>
         <div className="w-14 h-14 rounded-2xl bg-white/15 border border-white/20 flex items-center justify-center text-white text-xl font-bold">
-          AN
+          {initials}
         </div>
         <div className="min-w-0">
-          <div className="text-base font-bold truncate">Abigail Nirwana</div>
-          <div className="text-xs text-blue-100 mt-0.5">Kelas XI Akuntansi</div>
+          <div className="text-base font-bold truncate">{user.name}</div>
+          <div className="text-xs text-blue-100 mt-0.5">{user.className || "Siswa SMK Swadaya"}</div>
           <div className="mt-2 inline-flex items-center gap-1 rounded-full bg-white/15 px-2 py-0.5">
             <Shield size={10} className="text-blue-100" />
             <span className="text-[10px] text-white font-semibold">Terverifikasi</span>
@@ -2416,8 +2475,8 @@ function ProfileScreen({ balance, onLogout }: { balance: number; onLogout: () =>
           </div>
         </div>
         <div className="mt-3 pt-3 border-t border-border flex items-center justify-between">
-          <span className="text-[11px] text-muted-foreground">No. Rekening</span>
-          <span className="text-xs font-mono font-bold text-foreground">1023 - 9182</span>
+          <span className="text-[11px] text-muted-foreground">No. Rekening / NIS</span>
+          <span className="text-xs font-mono font-bold text-foreground">{user.username}</span>
         </div>
       </div>
 
@@ -2426,16 +2485,16 @@ function ProfileScreen({ balance, onLogout }: { balance: number; onLogout: () =>
         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Detail Rekening</p>
         <div className="space-y-3">
           <div className="flex justify-between">
-            <span className="text-sm text-muted-foreground">No. Rekening</span>
-            <span className="text-sm font-mono font-semibold text-foreground">1023 - 9182</span>
+            <span className="text-sm text-muted-foreground">No. Rekening / NIS</span>
+            <span className="text-sm font-mono font-semibold text-foreground">{user.username}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-sm text-muted-foreground">Kelas</span>
+            <span className="text-sm font-semibold text-foreground">{user.className || "-"}</span>
           </div>
           <div className="flex justify-between">
             <span className="text-sm text-muted-foreground">Jenis Akun</span>
             <span className="text-sm font-semibold text-foreground">Tabungan Swad</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-sm text-muted-foreground">Bergabung</span>
-            <span className="text-sm font-semibold text-foreground">Januari 2024</span>
           </div>
           <div className="flex justify-between pt-3 border-t border-border">
             <span className="text-sm font-medium text-muted-foreground">Status akun</span>
@@ -2501,17 +2560,10 @@ function ProfileScreen({ balance, onLogout }: { balance: number; onLogout: () =>
   );
 }
 
-const navItems = [
-  { id: "home" as Screen, label: "Beranda", icon: Home },
-  { id: "transfer" as Screen, label: "Transfer", icon: ArrowLeftRight },
-  { id: "history" as Screen, label: "Riwayat", icon: Clock },
-  { id: "profile" as Screen, label: "Profil", icon: User },
-];
-
 export default function App() {
   const [screen, setScreen] = useState<Screen>("home");
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [userRole, setUserRole] = useState<UserRole>("student");
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
   const [balance, setBalance] = useState(() => {
     const storedBalance = window.localStorage.getItem(BALANCE_STORAGE_KEY);
     const savedBalance = storedBalance === null ? Number.NaN : Number(storedBalance);
@@ -2548,12 +2600,27 @@ export default function App() {
     setLastUpdated(new Date());
   };
 
-  if (!isLoggedIn) {
-    return <LoginScreen onLogin={(user) => { setUserRole(user.role); setIsLoggedIn(true); }} />;
+  if (!isLoggedIn || !currentUser) {
+    return (
+      <LoginScreen
+        onLogin={(user) => {
+          setCurrentUser(user);
+          setIsLoggedIn(true);
+        }}
+      />
+    );
   }
 
-  if (userRole === "admin") {
-    return <AdminDashboard onLogout={() => { logout(); setIsLoggedIn(false); }} />;
+  if (currentUser.role === "admin") {
+    return (
+      <AdminDashboard
+        onLogout={() => {
+          logout();
+          setCurrentUser(null);
+          setIsLoggedIn(false);
+        }}
+      />
+    );
   }
 
   return (
@@ -2565,10 +2632,10 @@ export default function App() {
       >
         {/* Screen content */}
         <div className="absolute inset-0 overflow-hidden">
-          {screen === "home" && <HomeScreen onTransfer={() => setScreen("transfer")} balance={balance} transactions={liveTransactions} lastUpdated={lastUpdated} onRefresh={refreshBalance} onTransaction={applyTransaction} />}
+          {screen === "home" && <HomeScreen user={currentUser} onTransfer={() => setScreen("transfer")} balance={balance} transactions={liveTransactions} lastUpdated={lastUpdated} onRefresh={refreshBalance} onTransaction={applyTransaction} />}
           {screen === "transfer" && <TransferScreen balance={balance} onTransfer={applyTransaction} />}
           {screen === "history" && <HistoryScreen transactions={liveTransactions} />}
-          {screen === "profile" && <ProfileScreen balance={balance} onLogout={() => { logout(); setIsLoggedIn(false); }} />}
+          {screen === "profile" && <ProfileScreen user={currentUser} balance={balance} onLogout={() => { logout(); setCurrentUser(null); setIsLoggedIn(false); }} />}
         </div>
 
         {/* Bottom Nav */}
