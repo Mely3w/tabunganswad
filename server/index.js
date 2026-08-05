@@ -132,16 +132,20 @@ app.use(express.json({ limit: "10kb" }));
 app.get("/api/health", (_req, res) => res.json({ status: "ok" }));
 
 app.post("/api/auth/login", async (req, res) => {
-  const username = String(req.body?.username || "").trim();
+  const usernameInput = String(req.body?.username || "").trim();
   const password = String(req.body?.password || "");
   const requestedRole = req.body?.role;
   
-  if (!username || !password) {
+  if (!usernameInput || !password) {
     return res.status(400).json({ message: "Username dan password wajib diisi." });
   }
 
-  // Cari berdasarkan username atau nis (mengantisipasi perbedaan key pengiriman)
-  const user = db.prepare("SELECT * FROM users WHERE username = ? OR username = ?").get(username, username.replace(/-/g, ""));
+  // Bersihkan input dari berbagai jenis tanda strip/hubung agar aman dicocokkan
+  const cleanInput = usernameInput.replace(/[-–—\s]/g, "");
+
+  // Cari user dengan mencocokkan versi bersih dari karakter khusus di database
+  const users = db.prepare("SELECT * FROM users").all();
+  const user = users.find(u => u.username.replace(/[-–—\s]/g, "") === cleanInput);
   
   if (!user) {
     return res.status(401).json({ message: "Akun tidak ditemukan." });
@@ -156,10 +160,7 @@ app.post("/api/auth/login", async (req, res) => {
     return res.status(401).json({ message: "Role akun tidak sesuai." });
   }
 
-  // Jika ingin melonggarkan sementara untuk tes, pastikan user.active diizinkan atau di-update otomatis
   if (!user.active && user.role === 'student') {
-    // Opsional: Otomatis aktifkan akun saat login pertama kali jika diinginkan, 
-    // atau biarkan diblokir jika wajib diaktifkan admin. Mari kita izinkan atau beri pesan jelas:
     db.prepare("UPDATE users SET active = 1 WHERE id = ?").run(user.id);
     user.active = 1;
   }
