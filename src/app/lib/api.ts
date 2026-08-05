@@ -60,3 +60,9 @@ export const getAdminStudents = () => request<{ students: AdminStudent[] }>("/ap
 export const getAdminTransactions = () => request<{ transactions: AdminTransaction[] }>("/api/admin/transactions");
 export const setStudentStatus = (id: number, active: boolean) => request<{ message: string }>(`/api/admin/students/${id}/status`, { method: "PATCH", body: JSON.stringify({ active }) });
 export const approveTransaction = (id: number) => request<{ message: string }>(`/api/admin/transactions/${id}/approve`, { method: "PATCH" });
+
+export const addStudent = (data: { name: string; username: string; className: string; password: string }) => 
+  request<{ message: string }>("/api/admin/students", {
+    method: "POST",
+    body: JSON.stringify(data)
+  });

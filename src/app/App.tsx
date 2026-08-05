@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import logoBankMini from "../../logo-bank-mini.png";
-import { approveTransaction, getAdminDashboard, getAdminStudents, getAdminTransactions, login, logout, setStudentStatus, type AuthUser } from "./lib/api";
+import { approveTransaction, getAdminDashboard, getAdminStudents, getAdminTransactions, login, logout, setStudentStatus, addStudent, type AuthUser } from "./lib/api";
 import {
   Home,
   ArrowLeftRight,
@@ -223,6 +223,67 @@ const adminTransactions = [
   { id: 3, student: "Budi Santoso", activity: "Pembayaran koperasi", amount: 25000, time: "Kemarin, 12:10", status: "Selesai", type: "out" },
 ];
 
+function AddStudentModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: (msg: string) => void }) {
+  const [name, setName] = useState("");
+  const [username, setUsername] = useState("");
+  const [className, setClassName] = useState("");
+  const [password, setPassword] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setError("");
+    try {
+      const response = await addStudent({ name, username, className, password });
+      onSuccess(response.message);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Gagal menyimpan data siswa.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.6)" }}>
+      <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-xl">
+        <div className="mb-5 flex items-center justify-between">
+          <h3 className="text-lg font-bold text-slate-800">Tambah Siswa Baru</h3>
+          <button onClick={onClose} className="p-1 text-slate-400 hover:text-slate-600"><X size={20} /></button>
+        </div>
+        
+        {error && <div className="mb-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">{error}</div>}
+        
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="mb-1.5 block text-xs font-semibold text-slate-500">Nama Lengkap</label>
+            <input required value={name} onChange={(e) => setName(e.target.value)} className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" placeholder="Misal: Bintang Pradana" />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-xs font-semibold text-slate-500">NIS / Nomor Rekening</label>
+            <input required value={username} onChange={(e) => setUsername(e.target.value)} className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" placeholder="Misal: 1089-6789" />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-xs font-semibold text-slate-500">Kelas</label>
+            <input required value={className} onChange={(e) => setClassName(e.target.value)} className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" placeholder="Misal: XII RPL 2" />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-xs font-semibold text-slate-500">Password Awal Akun</label>
+            <input required type="text" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" placeholder="Buat password (misal: Siswa123!)" />
+          </div>
+          <div className="mt-6 flex justify-end gap-3 pt-2">
+            <button type="button" onClick={onClose} className="rounded-xl px-5 py-3 text-sm font-bold text-slate-500 hover:bg-slate-100 transition-colors">Batal</button>
+            <button type="submit" disabled={isSubmitting} className="rounded-xl bg-blue-600 px-5 py-3 text-sm font-bold text-white shadow-md hover:bg-blue-700 disabled:opacity-50 transition-colors">
+              {isSubmitting ? "Menyimpan..." : "Simpan Siswa"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 function AdminDashboard({ onLogout }: { onLogout: () => void }) {
   const [tab, setTab] = useState<AdminTab>("ringkasan");
   const [query, setQuery] = useState("");
@@ -230,6 +291,8 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
   const [adminRows, setAdminRows] = useState(adminTransactions);
   const [summary, setSummary] = useState({ totalBalance: 18750000, activeStudents: 3, pendingAccounts: 1, pendingTransactions: 1 });
   const [notice, setNotice] = useState("");
+  const [isAddOpen, setIsAddOpen] = useState(false); // State untuk mengontrol pop-up form
+
   const visibleAccounts = accounts.filter((student) =>
     `${student.name} ${student.nis} ${student.className}`.toLowerCase().includes(query.toLowerCase()),
   );
@@ -330,7 +393,7 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
         </>}
 
         {tab === "siswa" && <section className="rounded-2xl bg-white p-4 shadow-sm sm:p-5">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div><h2 className="text-lg font-bold">Data siswa</h2><p className="mt-1 text-xs text-slate-500">Kelola akun dan status tabungan siswa.</p></div><button onClick={() => setNotice("Form tambah siswa dapat dihubungkan ke database pada tahap berikutnya.")} className="rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-bold text-white">+ Tambah siswa</button></div>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div><h2 className="text-lg font-bold">Data siswa</h2><p className="mt-1 text-xs text-slate-500">Kelola akun dan status tabungan siswa.</p></div><button onClick={() => setIsAddOpen(true)} className="rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-bold text-white transition-colors hover:bg-blue-700 shadow-sm">+ Tambah siswa</button></div>
           <div className="relative mt-5"><Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={17} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Cari nama, NIS, atau kelas" className="w-full rounded-xl border border-slate-200 py-3 pl-10 pr-4 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" /></div>
           <div className="mt-4 divide-y divide-slate-100">
             {visibleAccounts.map((student) => <div key={student.id} className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between"><div className="flex items-center gap-3"><Avatar initial={student.name.split(" ").map((word) => word[0]).join("").slice(0, 2)} color={student.status === "Aktif" ? "#2563EB" : "#D97706"} /><div><p className="text-sm font-bold">{student.name}</p><p className="mt-1 text-xs text-slate-500">{student.nis} · {student.className}</p></div></div><div className="flex items-center justify-between gap-4 sm:justify-end"><div className="text-right"><p className="text-sm font-bold">{formatRupiah(student.balance)}</p><span className={`text-xs font-semibold ${student.status === "Aktif" ? "text-emerald-600" : "text-amber-600"}`}>{student.status}</span></div>{student.status === "Menunggu" && <button onClick={() => activateStudent(student.id)} className="rounded-lg bg-emerald-600 px-3 py-2 text-xs font-bold text-white">Aktifkan</button>}</div></div>)}
@@ -339,6 +402,18 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
         </section>}
 
         {tab === "transaksi" && <section className="rounded-2xl bg-white p-4 shadow-sm sm:p-5"><div className="flex items-center justify-between"><div><h2 className="text-lg font-bold">Transaksi terbaru</h2><p className="mt-1 text-xs text-slate-500">Verifikasi setoran dan penarikan siswa.</p></div><TrendingUp className="text-blue-600" size={24} /></div><div className="mt-4 divide-y divide-slate-100">{adminRows.map((transaction) => <div key={transaction.id} className="flex items-center justify-between gap-3 py-4"><div><p className="text-sm font-bold">{transaction.student}</p><p className="mt-1 text-xs text-slate-500">{transaction.activity} · {transaction.time}</p><span className={`mt-2 inline-block rounded-full px-2 py-0.5 text-[10px] font-bold ${transaction.status === "Selesai" ? "bg-emerald-50 text-emerald-700" : transaction.status === "Ditolak" ? "bg-red-50 text-red-700" : "bg-amber-50 text-amber-700"}`}>{transaction.status}</span></div><div className="text-right"><p className={`text-sm font-bold ${transaction.type === "in" ? "text-emerald-600" : "text-slate-800"}`}>{transaction.type === "in" ? "+" : "−"}{formatRupiah(transaction.amount)}</p>{transaction.status === "Perlu ditinjau" && <button onClick={() => approvePendingTransaction(transaction.id)} className="mt-2 rounded-lg bg-blue-600 px-3 py-2 text-xs font-bold text-white">Setujui</button>}</div></div>)}</div><button onClick={() => setNotice("Ekspor laporan akan tersedia setelah format file ditentukan.")} className="mt-5 w-full rounded-xl border border-blue-200 py-3 text-sm font-bold text-blue-700 hover:bg-blue-50">Ekspor laporan</button></section>}
+        
+        {/* Render Modal Tambah Siswa jika isAddOpen bernilai true */}
+        {isAddOpen && (
+          <AddStudentModal 
+            onClose={() => setIsAddOpen(false)} 
+            onSuccess={(msg) => {
+              setIsAddOpen(false);
+              setNotice(msg);
+              void loadAdminData(); // Refresh list data siswa setelah berhasil
+            }} 
+          />
+        )}
       </main>
     </div>
   );
