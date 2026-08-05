@@ -188,6 +188,39 @@ app.patch("/api/admin/students/:id/status", authenticate, allowRole("admin"), (r
   return res.json({ message: active ? "Akun siswa telah diaktifkan." : "Akun siswa telah dinonaktifkan." });
 });
 
+app.post("/api/admin/students", authenticate, allowRole("admin"), async (req, res) => {
+  const { name, username, className, password } = req.body;
+  
+  if (!name || !username || !className || !password) {
+    return res.status(400).json({ message: "Semua data (Nama, NIS, Kelas, Password) wajib diisi." });
+  }
+
+  try {
+    const existing = db.prepare("SELECT id FROM users WHERE username = ?").get(username);
+    if (existing) {
+      return res.status(400).json({ message: "NIS tersebut sudah terdaftar." });
+    }
+
+    const passwordHash = await bcrypt.hash(password, 12);
+
+    db.exec("BEGIN");
+    
+    const insertUser = db.prepare("INSERT INTO users (name, username, password_hash, role, active, class_name) VALUES (?, ?, ?, 'student', 1, ?)");
+    const result = insertUser.run(name, username, passwordHash, className);
+    
+    const insertAccount = db.prepare("INSERT INTO accounts (user_id, account_number, balance) VALUES (?, ?, 0)");
+    insertAccount.run(result.lastInsertRowid, username);
+    
+    db.exec("COMMIT");
+    return res.status(200).json({ message: "Siswa baru berhasil ditambahkan." });
+    
+  } catch (error) {
+    db.exec("ROLLBACK");
+    console.error(error);
+    return res.status(500).json({ message: "Gagal menyimpan data siswa ke server." });
+  }
+});
+
 app.get("/api/admin/transactions", authenticate, allowRole("admin"), (_req, res) => {
   const transactions = db.prepare(`SELECT t.id, u.name AS student, t.amount, t.type, t.category, t.note, t.status, t.created_at
     FROM transactions t JOIN accounts a ON a.id = t.account_id JOIN users u ON u.id = a.user_id
@@ -222,24 +255,3 @@ app.use((error, _req, res, _next) => {
 migrate();
 await seed();
 app.listen(port, () => console.log(`API Tabungan Swad berjalan di http://localhost:${port}`));
-
-app.post('/api/admin/students', async (req, res) => {
-  try {
-    const { name, username, className, password } = req.body;
-    
-    // Masukkan data siswa ke database sqlite Anda dengan status active = 1 (aktif)
-    db.run(
-      `INSERT INTO users (name, username, class_name, password, role, active, balance) VALUES (?, ?, ?, ?, 'student', 1, 0)`,
-      [name, username, className, password],
-      function(err) {
-        if (err) {
-          console.error(err);
-          return res.status(500).json({ message: "Gagal menyimpan ke database." });
-        }
-        res.status(200).json({ message: `Siswa ${name} berhasil ditambahkan!` });
-      }
-    );
-  } catch (error) {
-    res.status(500).json({ message: "Gagal menyimpan ke database." });
-  }
-});
