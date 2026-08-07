@@ -135,7 +135,6 @@ app.use(express.json({ limit: "10kb" }));
 
 app.get("/api/health", (_req, res) => res.json({ status: "ok" }));
 
-// PERBAIKAN LOGIN: Pencocokan username yang lebih toleran terhadap format strip/spasi
 app.post("/api/auth/login", async (req, res) => {
   const usernameInput = String(req.body?.username || "").trim();
   const password = String(req.body?.password || "");
@@ -223,15 +222,15 @@ app.post("/api/admin/students", authenticate, allowRole("admin"), async (req, re
     return res.status(400).json({ message: "Semua data (Nama, NIS, Kelas, Password) wajib diisi." });
   }
 
+  db.exec("BEGIN");
   try {
     const existing = db.prepare("SELECT id FROM users WHERE username = ?").get(username);
     if (existing) {
+      db.exec("ROLLBACK");
       return res.status(400).json({ message: "NIS tersebut sudah terdaftar." });
     }
 
     const passwordHash = await bcrypt.hash(password, 12);
-
-    db.exec("BEGIN");
     const insertUser = db.prepare("INSERT INTO users (name, username, password_hash, role, active, class_name) VALUES (?, ?, ?, 'student', 1, ?)");
     const result = insertUser.run(name, username, passwordHash, className);
     
@@ -241,32 +240,32 @@ app.post("/api/admin/students", authenticate, allowRole("admin"), async (req, re
     db.exec("COMMIT");
     return res.status(200).json({ message: "Siswa baru berhasil ditambahkan." });
   } catch (error) {
-    db.exec("ROLLBACK");
+    try { db.exec("ROLLBACK"); } catch (e) {}
     console.error(error);
     return res.status(500).json({ message: "Gagal menyimpan data siswa ke server." });
   }
 });
 
-// FITUR BARU: Endpoint Import Massal Siswa via Excel
+// Endpoint Import Massal Siswa via Excel
 app.post("/api/admin/import-students", authenticate, allowRole("admin"), upload.single("file"), async (req, res) => {
   if (!req.file) return res.status(400).json({ message: "File Excel wajib diunggah." });
 
+  db.exec("BEGIN");
   try {
     const workbook = XLSX.readFile(req.file.path);
     const sheetName = workbook.SheetNames[0];
     const rows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
 
     if (!rows.length) {
+      db.exec("ROLLBACK");
       return res.status(400).json({ message: "File Excel kosong atau format tidak sesuai." });
     }
 
-    db.exec("BEGIN");
     const insertUser = db.prepare("INSERT INTO users (name, username, password_hash, role, active, class_name) VALUES (?, ?, ?, 'student', 1, ?)");
     const insertAccount = db.prepare("INSERT INTO accounts (user_id, account_number, balance) VALUES (?, ?, 0)");
 
     let count = 0;
     for (const row of rows) {
-      // Pastikan kolom Excel sesuai: Nama, NIS, Kelas, Password
       const name = row.Nama || row.name;
       const nis = String(row.NIS || row.nis || "").trim();
       const className = row.Kelas || row.kelas;
@@ -275,7 +274,7 @@ app.post("/api/admin/import-students", authenticate, allowRole("admin"), upload.
       if (!name || !nis) continue;
 
       const existing = db.prepare("SELECT id FROM users WHERE username = ?").get(nis);
-      if (existing) continue; // Lewati jika NIS sudah ada
+      if (existing) continue;
 
       const passwordHash = await bcrypt.hash(rawPassword, 12);
       const resUser = insertUser.run(name, nis, passwordHash, className || "-");
@@ -286,7 +285,7 @@ app.post("/api/admin/import-students", authenticate, allowRole("admin"), upload.
     db.exec("COMMIT");
     return res.json({ message: `Berhasil mengimpor ${count} data siswa baru.` });
   } catch (error) {
-    db.exec("ROLLBACK");
+    try { db.exec("ROLLBACK"); } catch (e) {}
     console.error(error);
     return res.status(500).json({ message: "Gagal memproses file Excel di server." });
   }
@@ -312,7 +311,7 @@ app.patch("/api/admin/transactions/:id/approve", authenticate, allowRole("admin"
     db.prepare("UPDATE transactions SET status = 'completed' WHERE id = ?").run(transaction.id);
     db.exec("COMMIT");
   } catch (error) {
-    db.exec("ROLLBACK");
+    try { db.exec("ROLLBACK"); } catch (e) {}
     throw error;
   }
   return res.json({ message: "Transaksi telah disetujui." });
