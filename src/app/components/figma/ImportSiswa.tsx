@@ -27,9 +27,9 @@ export default function ImportSiswa() {
     formData.append("file", file);
 
     try {
-      const token = localStorage.getItem("token"); 
+      // Mengambil token sesuai dengan nama key yang tersimpan di browser
+      const token = localStorage.getItem("tabungan-swad-token"); 
 
-      // Menghubungkan langsung ke backend Anda di Railway
       const API_URL = "https://tabunganswad-production.up.railway.app";
 
       const response = await fetch(`${API_URL}/api/admin/import-students`, {
