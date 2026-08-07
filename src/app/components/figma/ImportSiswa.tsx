@@ -29,7 +29,10 @@ export default function ImportSiswa() {
     try {
       const token = localStorage.getItem("token"); 
 
-      const response = await fetch("/api/admin/import-students", {
+      // Menghubungkan langsung ke backend Anda di Railway
+      const API_URL = "https://tabunganswad-production.up.railway.app";
+
+      const response = await fetch(`${API_URL}/api/admin/import-students`, {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${token}`
@@ -40,14 +43,14 @@ export default function ImportSiswa() {
       const result = await response.json();
       
       if (response.ok) {
-        setMessage(result.message);
+        setMessage(result.message || "Data siswa berhasil diimpor!");
         setFile(null);
         (e.target as HTMLFormElement).reset();
       } else {
         setError(result.message || "Gagal mengunggah data.");
       }
     } catch (err) {
-      setError("Terjadi kesalahan jaringan. Cek kembali koneksi Anda.");
+      setError("Terjadi kesalahan jaringan atau server belum merespons.");
     } finally {
       setLoading(false);
     }
