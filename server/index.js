@@ -3,6 +3,8 @@ import cors from "cors";
 import express from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import multer from "multer";
+import * as XLSX from "xlsx";
 import { DatabaseSync } from "node:sqlite";
 import { mkdirSync } from "node:fs";
 import { dirname, resolve } from "node:path";
@@ -24,6 +26,8 @@ if (!jwtSecret || jwtSecret.length < 32) {
 mkdirSync(dirname(databasePath), { recursive: true });
 const db = new DatabaseSync(databasePath);
 db.exec("PRAGMA foreign_keys = ON;");
+
+const upload = multer({ dest: "uploads/" });
 
 function migrate() {
   db.exec(`
@@ -131,6 +135,7 @@ app.use(express.json({ limit: "10kb" }));
 
 app.get("/api/health", (_req, res) => res.json({ status: "ok" }));
 
+// PERBAIKAN LOGIN: Pencocokan username yang lebih toleran terhadap format strip/spasi
 app.post("/api/auth/login", async (req, res) => {
   const usernameInput = String(req.body?.username || "").trim();
   const password = String(req.body?.password || "");
@@ -140,12 +145,12 @@ app.post("/api/auth/login", async (req, res) => {
     return res.status(400).json({ message: "Username dan password wajib diisi." });
   }
 
-  // Bersihkan input dari berbagai jenis tanda strip/hubung agar aman dicocokkan
-  const cleanInput = usernameInput.replace(/[-–—\s]/g, "");
-
-  // Cari user dengan mencocokkan versi bersih dari karakter khusus di database
+  const cleanInput = usernameInput.toLowerCase().replace(/[^a-z0-9]/g, "");
   const users = db.prepare("SELECT * FROM users").all();
-  const user = users.find(u => u.username.replace(/[-–—\s]/g, "") === cleanInput);
+  const user = users.find(u => {
+    const dbClean = String(u.username || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+    return dbClean === cleanInput;
+  });
   
   if (!user) {
     return res.status(401).json({ message: "Akun tidak ditemukan." });
@@ -166,6 +171,12 @@ app.post("/api/auth/login", async (req, res) => {
   }
 
   return res.json({ token: createToken(user), user: publicUser(user) });
+});
+
+app.get("/api/auth/me", authenticate, (req, res) => {
+  const user = getCurrentUser(req.auth.sub);
+  if (!user || !user.active) return res.status(401).json({ message: "Akun tidak aktif." });
+  return res.json({ user: publicUser(user) });
 });
 
 app.get("/api/student/account", authenticate, allowRole("student"), (req, res) => {
@@ -221,7 +232,6 @@ app.post("/api/admin/students", authenticate, allowRole("admin"), async (req, re
     const passwordHash = await bcrypt.hash(password, 12);
 
     db.exec("BEGIN");
-    
     const insertUser = db.prepare("INSERT INTO users (name, username, password_hash, role, active, class_name) VALUES (?, ?, ?, 'student', 1, ?)");
     const result = insertUser.run(name, username, passwordHash, className);
     
@@ -230,11 +240,55 @@ app.post("/api/admin/students", authenticate, allowRole("admin"), async (req, re
     
     db.exec("COMMIT");
     return res.status(200).json({ message: "Siswa baru berhasil ditambahkan." });
-    
   } catch (error) {
     db.exec("ROLLBACK");
     console.error(error);
     return res.status(500).json({ message: "Gagal menyimpan data siswa ke server." });
+  }
+});
+
+// FITUR BARU: Endpoint Import Massal Siswa via Excel
+app.post("/api/admin/import-students", authenticate, allowRole("admin"), upload.single("file"), async (req, res) => {
+  if (!req.file) return res.status(400).json({ message: "File Excel wajib diunggah." });
+
+  try {
+    const workbook = XLSX.readFile(req.file.path);
+    const sheetName = workbook.SheetNames[0];
+    const rows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
+
+    if (!rows.length) {
+      return res.status(400).json({ message: "File Excel kosong atau format tidak sesuai." });
+    }
+
+    db.exec("BEGIN");
+    const insertUser = db.prepare("INSERT INTO users (name, username, password_hash, role, active, class_name) VALUES (?, ?, ?, 'student', 1, ?)");
+    const insertAccount = db.prepare("INSERT INTO accounts (user_id, account_number, balance) VALUES (?, ?, 0)");
+
+    let count = 0;
+    for (const row of rows) {
+      // Pastikan kolom Excel sesuai: Nama, NIS, Kelas, Password
+      const name = row.Nama || row.name;
+      const nis = String(row.NIS || row.nis || "").trim();
+      const className = row.Kelas || row.kelas;
+      const rawPassword = String(row.Password || row.password || "Siswa123!");
+
+      if (!name || !nis) continue;
+
+      const existing = db.prepare("SELECT id FROM users WHERE username = ?").get(nis);
+      if (existing) continue; // Lewati jika NIS sudah ada
+
+      const passwordHash = await bcrypt.hash(rawPassword, 12);
+      const resUser = insertUser.run(name, nis, passwordHash, className || "-");
+      insertAccount.run(Number(resUser.lastInsertRowid), nis);
+      count++;
+    }
+
+    db.exec("COMMIT");
+    return res.json({ message: `Berhasil mengimpor ${count} data siswa baru.` });
+  } catch (error) {
+    db.exec("ROLLBACK");
+    console.error(error);
+    return res.status(500).json({ message: "Gagal memproses file Excel di server." });
   }
 });
 
