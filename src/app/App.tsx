@@ -51,9 +51,6 @@ type Transaction = {
 
 type NewTransaction = Omit<Transaction, "id" | "date">;
 
-const INITIAL_BALANCE = 875000;
-const BALANCE_STORAGE_KEY = "tabungan-swad-balance";
-
 const transactions: Transaction[] = [
   { id: 1, name: "Dari Budi Santoso", type: "in", amount: 50000, date: "Hari ini, 10:23", category: "Transfer Masuk" },
   { id: 2, name: "Kantin Sekolah", type: "out", amount: 15000, date: "Hari ini, 08:45", category: "Pembayaran" },
@@ -645,25 +642,39 @@ function TransactionItem({ tx }: { tx: typeof transactions[0] }) {
 
 type TabungStep = "input" | "konfirmasi" | "bukti";
 
-function TabungModal({ onClose, onDeposit }: { onClose: () => void; onDeposit: (amount: number) => void }) {
-  const [step, setStep] = useState<TabungStep>("input");
+function TabungModal({
+  onClose,
+  onDeposit,
+}: {
+  onClose: () => void;
+  onDeposit: (amount: number) => Promise<void>;
+}) {
+  const [step, setStep] = useState("input");
   const [amount, setAmount] = useState("");
+
   const noRef = `TAB-${Date.now().toString().slice(-8)}`;
+
   const now = new Date();
-  const tgl = now.toLocaleDateString("id-ID", { day: "2-digit", month: "long", year: "numeric" });
-  const jam = now.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
 
-  const stepTitle: Record<TabungStep, string> = {
-    input: "Tabung Sekarang",
-    konfirmasi: "Konfirmasi Tabungan",
-    bukti: "Bukti Tabungan",
-  };
-
-  const handleConfirm = () => {
-    onDeposit(Number(amount));
+  const tgl = now.toLocaleDateString("id-ID", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  });
+  const handleConfirm = async () => {
+  try {
+    await onDeposit(Number(amount));
     setStep("bukti");
-  };
+  } catch (error) {
+    console.error("Gagal melakukan setoran:", error);
 
+    alert(
+      error instanceof Error
+        ? error.message
+        : "Setoran gagal dilakukan."
+    );
+  }
+};
   return (
     <div
       className="absolute inset-0 z-50 flex items-end"
@@ -2171,13 +2182,30 @@ function HomeScreen({
           onClose={() => setReminderOpen(false)}
         />
       )}
-      {tabungOpen && <TabungModal onClose={() => setTabungOpen(false)} onDeposit={(amount) => onTransaction({ name: "Setoran Tabungan", type: "in", amount, category: "Top Up" })} />}
-    </div>
-  );
-}
-function TransferScreen({ balance, onTransfer }: { balance: number; onTransfer: (entry: NewTransaction) => void }) {
-  const [step, setStep] = useState<"select" | "amount" | "confirm" | "success">("select");
-  const [selected, setSelected] = useState<typeof contacts[0] | null>(null);
+      {tabungOpen && (
+  <TabungModal
+    onClose={() => setTabungOpen(false)}
+    onDeposit={async (amount) => {
+      await createDeposit(amount);
+      await onRefresh();
+    }}
+  />
+)}
+      
+function TransferScreen({
+  balance,
+  onTransfer,
+}: {
+  balance: number;
+  onTransfer: (entry: NewTransaction) => void;
+}) {
+  const [step, setStep] = useState<
+    "select" | "amount" | "confirm" | "success"
+  >("select");
+
+  const [selected, setSelected] =
+    useState<typeof contacts[0] | null>(null);
+
   const [amount, setAmount] = useState("");
   const [note, setNote] = useState("");
 
@@ -2186,12 +2214,26 @@ function TransferScreen({ balance, onTransfer }: { balance: number; onTransfer: 
     setStep("amount");
   };
 
-  const handleConfirm = () => setStep("confirm");
+  const handleConfirm = () => {
+    if (!amount || Number(amount) <= 0) return;
+
+    setStep("confirm");
+  };
+
   const handleSend = () => {
-    if (!selected || Number(amount) > balance) return;
-    onTransfer({ name: `Transfer ke ${selected.name}`, type: "out", amount: Number(amount), category: "Transfer Keluar" });
+    if (!selected || Number(amount) <= 0) return;
+    if (Number(amount) > balance) return;
+
+    onTransfer({
+      name: `Transfer ke ${selected.name}`,
+      type: "out",
+      amount: Number(amount),
+      category: "Transfer Keluar",
+    });
+
     setStep("success");
   };
+
   const handleReset = () => {
     setStep("select");
     setSelected(null);
@@ -2200,12 +2242,19 @@ function TransferScreen({ balance, onTransfer }: { balance: number; onTransfer: 
   };
 
   return (
-    <div className="flex flex-col h-full overflow-y-auto pb-24" style={{ scrollbarWidth: "none" }}>
+    <div
+      className="flex flex-col h-full overflow-y-auto pb-24"
+      style={{ scrollbarWidth: "none" }}
+    >
       <div className="px-4 pt-7 pb-5">
-        <h1 className="text-xl font-bold text-foreground">Transfer</h1>
-        <p className="text-xs text-muted-foreground mt-0.5">Kirim uang ke teman sekolah</p>
-      </div>
+        <h1 className="text-xl font-bold text-foreground">
+          Transfer
+        </h1>
 
+        <p className="text-xs text-muted-foreground mt-0.5">
+          Kirim uang ke teman sekolah
+        </p>
+      </div>
       {step === "select" && (
         <div className="px-4">
           <div className="bg-card rounded-2xl shadow-sm overflow-hidden mb-4">
@@ -2630,41 +2679,51 @@ export default function App() {
   const [screen, setScreen] = useState<Screen>("home");
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
-  const [balance, setBalance] = useState(() => {
-    const storedBalance = window.localStorage.getItem(BALANCE_STORAGE_KEY);
-    const savedBalance = storedBalance === null ? Number.NaN : Number(storedBalance);
-    return Number.isFinite(savedBalance) && savedBalance >= 0 ? savedBalance : INITIAL_BALANCE;
-  });
-  const [liveTransactions, setLiveTransactions] = useState<Transaction[]>(transactions);
+  const [balance, setBalance] = useState(0);
+ const [liveTransactions, setLiveTransactions] =
+  useState<Transaction[]>([]);
   const [lastUpdated, setLastUpdated] = useState(new Date());
+    useEffect(() => {
+  if (!currentUser || currentUser.role !== "student") return;
 
-  useEffect(() => {
-    const syncBalanceFromAnotherSession = (event: StorageEvent) => {
-      if (event.key !== BALANCE_STORAGE_KEY || event.newValue === null) return;
-      const nextBalance = Number(event.newValue);
-      if (Number.isFinite(nextBalance) && nextBalance >= 0) {
-        setBalance(nextBalance);
-        setLastUpdated(new Date());
-      }
-    };
-    window.addEventListener("storage", syncBalanceFromAnotherSession);
-    return () => window.removeEventListener("storage", syncBalanceFromAnotherSession);
-  }, []);
+  const loadStudentAccount = async () => {
+    try {
+      const result = await getStudentAccount();
 
-  const refreshBalance = () => setLastUpdated(new Date());
-  const applyTransaction = (entry: NewTransaction) => {
-    setBalance((currentBalance) => {
-      const change = entry.type === "in" ? entry.amount : -entry.amount;
-      const nextBalance = Math.max(0, currentBalance + change);
-      window.localStorage.setItem(BALANCE_STORAGE_KEY, String(nextBalance));
-      return nextBalance;
-    });
-    setLiveTransactions((currentTransactions) => [
-      { ...entry, id: Date.now(), date: "Baru saja" },
-      ...currentTransactions,
-    ]);
-    setLastUpdated(new Date());
+      setBalance(result.account.balance);
+      setLastUpdated(new Date(result.account.updatedAt));
+    } catch (error) {
+      console.error("Gagal mengambil data rekening siswa:", error);
+    }
   };
+
+  loadStudentAccount();
+}, [currentUser]);
+
+  const refreshBalance = async () => {
+  try {
+    const result = await getStudentAccount();
+
+    setBalance(result.account.balance);
+    setLastUpdated(new Date(result.account.updatedAt));
+
+    const transactionResult = await getStudentTransactions();
+
+    const mappedTransactions: Transaction[] =
+      transactionResult.transactions.map((tx) => ({
+        id: tx.id,
+        name: tx.note || tx.category,
+        type: tx.type,
+        amount: tx.amount,
+        date: tx.created_at,
+        category: tx.category,
+      }));
+
+    setLiveTransactions(mappedTransactions);
+  } catch (error) {
+    console.error("Gagal memperbarui data siswa:", error);
+  }
+};
 
   if (!isLoggedIn || !currentUser) {
     return (
