@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import ImportSiswa from "./components/figma/ImportSiswa";
 import logoBankMini from "../../logo-bank-mini.png";
 import { approveTransaction, getAdminDashboard, getAdminStudents, getAdminTransactions, login, logout, setStudentStatus, addStudent, type AuthUser } from "./lib/api";
 import {
@@ -298,7 +299,7 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
   const [adminRows, setAdminRows] = useState(adminTransactions);
   const [summary, setSummary] = useState({ totalBalance: 18750000, activeStudents: 3, pendingAccounts: 1, pendingTransactions: 1 });
   const [notice, setNotice] = useState("");
-  const [isAddOpen, setIsAddOpen] = useState(false); // State untuk mengontrol pop-up form
+  const [isAddOpen, setIsAddOpen] = useState(false);
 
   const visibleAccounts = accounts.filter((student) =>
     `${student.name} ${student.nis} ${student.className}`.toLowerCase().includes(query.toLowerCase()),
@@ -399,27 +400,92 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
           </section>
         </>}
 
-        {tab === "siswa" && <section className="rounded-2xl bg-white p-4 shadow-sm sm:p-5">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div><h2 className="text-lg font-bold">Data siswa</h2><p className="mt-1 text-xs text-slate-500">Kelola akun dan status tabungan siswa.</p></div><button onClick={() => setIsAddOpen(true)} className="rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-bold text-white transition-colors hover:bg-blue-700 shadow-sm">+ Tambah siswa</button></div>
-          <div className="relative mt-5"><Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={17} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Cari nama, NIS, atau kelas" className="w-full rounded-xl border border-slate-200 py-3 pl-10 pr-4 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" /></div>
-          <div className="mt-4 divide-y divide-slate-100">
-            {visibleAccounts.map((student) => <div key={student.id} className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between"><div className="flex items-center gap-3"><Avatar initial={student.name.split(" ").map((word) => word[0]).join("").slice(0, 2)} color={student.status === "Aktif" ? "#2563EB" : "#D97706"} /><div><p className="text-sm font-bold">{student.name}</p><p className="mt-1 text-xs text-slate-500">{student.nis} · {student.className}</p></div></div><div className="flex items-center justify-between gap-4 sm:justify-end"><div className="text-right"><p className="text-sm font-bold">{formatRupiah(student.balance)}</p><span className={`text-xs font-semibold ${student.status === "Aktif" ? "text-emerald-600" : "text-amber-600"}`}>{student.status}</span></div>{student.status === "Menunggu" && <button onClick={() => activateStudent(student.id)} className="rounded-lg bg-emerald-600 px-3 py-2 text-xs font-bold text-white">Aktifkan</button>}</div></div>)}
-            {visibleAccounts.length === 0 && <p className="py-8 text-center text-sm text-slate-500">Siswa tidak ditemukan.</p>}
-          </div>
-        </section>}
+        {tab === "siswa" && (
+          <section className="rounded-2xl bg-white p-4 shadow-sm sm:p-5">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-5">
+              <div>
+                <h2 className="text-lg font-bold">Data siswa</h2>
+                <p className="mt-1 text-xs text-slate-500">Kelola akun dan status tabungan siswa.</p>
+              </div>
+              <button 
+                onClick={() => setIsAddOpen(true)} 
+                className="rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-bold text-white transition-colors hover:bg-blue-700 shadow-sm"
+              >
+                + Tambah siswa
+              </button>
+            </div>
 
-        {tab === "transaksi" && <section className="rounded-2xl bg-white p-4 shadow-sm sm:p-5"><div className="flex items-center justify-between"><div><h2 className="text-lg font-bold">Transaksi terbaru</h2><p className="mt-1 text-xs text-slate-500">Verifikasi setoran dan penarikan siswa.</p></div><TrendingUp className="text-blue-600" size={24} /></div><div className="mt-4 divide-y divide-slate-100">{adminRows.map((transaction) => <div key={transaction.id} className="flex items-center justify-between gap-3 py-4"><div><p className="text-sm font-bold">{transaction.student}</p><p className="mt-1 text-xs text-slate-500">{transaction.activity} · {transaction.time}</p><span className={`mt-2 inline-block rounded-full px-2 py-0.5 text-[10px] font-bold ${transaction.status === "Selesai" ? "bg-emerald-50 text-emerald-700" : transaction.status === "Ditolak" ? "bg-red-50 text-red-700" : "bg-amber-50 text-amber-700"}`}>{transaction.status}</span></div><div className="text-right"><p className={`text-sm font-bold ${transaction.type === "in" ? "text-emerald-600" : "text-slate-800"}`}>{transaction.type === "in" ? "+" : "−"}{formatRupiah(transaction.amount)}</p>{transaction.status === "Perlu ditinjau" && <button onClick={() => approvePendingTransaction(transaction.id)} className="mt-2 rounded-lg bg-blue-600 px-3 py-2 text-xs font-bold text-white">Setujui</button>}</div></div>)}</div><button onClick={() => setNotice("Ekspor laporan akan tersedia setelah format file ditentukan.")} className="mt-5 w-full rounded-xl border border-blue-200 py-3 text-sm font-bold text-blue-700 hover:bg-blue-50">Ekspor laporan</button></section>}
-        
-        {/* Render Modal Tambah Siswa jika isAddOpen bernilai true */}
-        {isAddOpen && (
-          <AddStudentModal 
-            onClose={() => setIsAddOpen(false)} 
-            onSuccess={(msg) => {
-              setIsAddOpen(false);
-              setNotice(msg);
-              void loadAdminData(); // Refresh list data siswa setelah berhasil
-            }} 
-          />
+            <ImportSiswa />
+
+            <div className="relative mt-5">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={17} />
+              <input 
+                value={query} 
+                onChange={(event) => setQuery(event.target.value)} 
+                placeholder="Cari nama, NIS, atau kelas" 
+                className="w-full rounded-xl border border-slate-200 py-3 pl-10 pr-4 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100" 
+              />
+            </div>
+            
+            <div className="mt-4 divide-y divide-slate-100">
+              {visibleAccounts.map((student) => (
+                <div key={student.id} className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-center gap-3">
+                    <Avatar initial={student.name.split(" ").map((word) => word[0]).join("").slice(0, 2)} color={student.status === "Aktif" ? "#2563EB" : "#D97706"} />
+                    <div>
+                      <p className="text-sm font-bold">{student.name}</p>
+                      <p className="mt-1 text-xs text-slate-500">{student.nis} · {student.className}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between gap-4 sm:justify-end">
+                    <div className="text-right">
+                      <p className="text-sm font-bold">{formatRupiah(student.balance)}</p>
+                      <span className={`text-xs font-semibold ${student.status === "Aktif" ? "text-emerald-600" : "text-amber-600"}`}>{student.status}</span>
+                    </div>
+                    {student.status === "Menunggu" && (
+                      <button onClick={() => activateStudent(student.id)} className="rounded-lg bg-emerald-600 px-3 py-2 text-xs font-bold text-white">
+                        Aktifkan
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+              {visibleAccounts.length === 0 && <p className="py-8 text-center text-sm text-slate-500">Siswa tidak ditemukan.</p>}
+            </div>
+          </section>
+        )}
+
+        {tab === "transaksi" && (
+          <section className="rounded-2xl bg-white p-4 shadow-sm sm:p-5">
+            <div className="mb-5">
+              <h2 className="text-lg font-bold">Data transaksi</h2>
+              <p className="mt-1 text-xs text-slate-500">Tinjau dan setujui transaksi siswa.</p>
+            </div>
+            <div className="mt-4 divide-y divide-slate-100">
+              {adminRows.map((tx) => (
+                <div key={tx.id} className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-sm font-bold">{tx.student}</p>
+                    <p className="mt-1 text-xs text-slate-500">{tx.activity} · {tx.time}</p>
+                  </div>
+                  <div className="flex items-center justify-between gap-4 sm:justify-end">
+                    <div className="text-right">
+                      <p className={`text-sm font-bold ${tx.type === "in" ? "text-emerald-600" : "text-amber-600"}`}>
+                        {tx.type === "in" ? "+" : "-"}{formatRupiah(tx.amount)}
+                      </p>
+                      <span className={`text-xs font-semibold ${tx.status === "Selesai" ? "text-emerald-600" : "text-amber-600"}`}>{tx.status}</span>
+                    </div>
+                    {tx.status === "Perlu ditinjau" && (
+                      <button onClick={() => approvePendingTransaction(tx.id)} className="rounded-lg bg-blue-600 px-3 py-2 text-xs font-bold text-white">
+                        Setujui
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+              {adminRows.length === 0 && <p className="py-8 text-center text-sm text-slate-500">Tidak ada transaksi.</p>}
+            </div>
+          </section>
         )}
       </main>
     </div>
