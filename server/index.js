@@ -190,6 +190,24 @@ app.get("/api/student/transactions", authenticate, allowRole("student"), (req, r
   return res.json({ transactions: rows });
 });
 
+app.get("/api/student/contacts", authenticate, allowRole("student"), (req, res) => {
+  const contacts = db.prepare(`
+    SELECT
+      u.id,
+      u.name,
+      a.account_number AS accountNumber,
+      u.class_name AS className
+    FROM users u
+    JOIN accounts a ON a.user_id = u.id
+    WHERE u.role = 'student'
+      AND u.active = 1
+      AND u.id != ?
+    ORDER BY u.name
+  `).all(req.auth.sub);
+
+  return res.json({ contacts });
+});
+
 app.get("/api/admin/dashboard", authenticate, allowRole("admin"), (_req, res) => {
   const totalBalance = db.prepare("SELECT COALESCE(SUM(balance), 0) AS total FROM accounts").get().total;
   const activeStudents = db.prepare("SELECT COUNT(*) AS count FROM users WHERE role = 'student' AND active = 1").get().count;
