@@ -323,5 +323,5 @@ app.use((error, _req, res, _next) => {
 });
 
 migrate();
-await seed();
+// await seed(); // Di-nonaktifkan agar data tidak bercampur dengan data default
 app.listen(port, () => console.log(`API Tabungan Swad berjalan di http://localhost:${port}`));
