@@ -2364,75 +2364,98 @@ function TransferScreen({
       )}
 
       {step === "confirm" && selected && (
-        <div className="px-4">
-          <div className="bg-card rounded-2xl shadow-sm px-5 py-5 mb-4">
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-4">Konfirmasi Transfer</p>
-            <div className="flex flex-col items-center mb-5">
-              <Avatar initial={selected.initial} color={selected.color} size={56} />
-              <div className="mt-2 text-base font-bold text-foreground">{selected.name}</div>
-              <div className="text-xs text-muted-foreground font-mono">{selected.account}</div>
-            </div>
-            <div className="space-y-3 border-t border-border pt-4">
-              <div className="flex justify-between">
-                <span className="text-sm text-muted-foreground">Jumlah</span>
-                <span className="text-sm font-bold text-foreground">{formatRupiah(Number(amount))}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-sm text-muted-foreground">Biaya Admin</span>
-                <span className="text-sm font-bold text-green-600">Gratis</span>
-              </div>
-              {note && (
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Catatan</span>
-                  <span className="text-sm font-medium text-foreground">{note}</span>
-                </div>
-              )}
-              <div className="flex justify-between pt-2 border-t border-border">
-                <span className="text-sm font-bold text-foreground">Total</span>
-                <span className="text-sm font-bold" style={{ color: "#1A3A6B" }}>{formatRupiah(Number(amount))}</span>
-              </div>
-            </div>
-          </div>
-          <div className="flex gap-3">
-            <button onClick={() => setStep("amount")} className="flex-1 py-4 rounded-2xl text-sm font-bold border border-border text-foreground">Kembali</button>
-            <button onClick={handleSend} disabled={Number(amount) > balance} className="flex-[2] py-4 rounded-2xl text-sm font-bold text-white disabled:opacity-40" style={{ background: "linear-gradient(135deg, #1A3A6B, #2563EB)" }}>
-              Kirim Sekarang
-            </button>
-          </div>
-        </div>
-      )}
+  <div className="px-4">
+    <div className="bg-card rounded-2xl shadow-sm px-5 py-5 mb-4">
+      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-4">
+        Konfirmasi Transfer
+      </p>
 
-      {step === "success" && selected && (
-        <div className="px-4 flex flex-col items-center justify-center flex-1 pt-10">
-          <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center mb-4">
-            <Check size={40} className="text-green-600" />
+      <div className="flex flex-col items-center mb-5">
+        <Avatar
+          initial={selected.initial}
+          color={selected.color}
+          size={56}
+        />
+
+        <div className="mt-2 text-base font-bold text-foreground">
+          {selected.name}
+        </div>
+
+        <div className="text-xs text-muted-foreground font-mono">
+          {selected.account}
+        </div>
+      </div>
+
+      <div className="space-y-3 border-t border-border pt-4">
+        <div className="flex justify-between">
+          <span className="text-sm text-muted-foreground">
+            Jumlah
+          </span>
+
+          <span className="text-sm font-bold text-foreground">
+            {formatRupiah(Number(amount))}
+          </span>
+        </div>
+
+        <div className="flex justify-between">
+          <span className="text-sm text-muted-foreground">
+            Biaya Admin
+          </span>
+
+          <span className="text-sm font-bold text-green-600">
+            Gratis
+          </span>
+        </div>
+
+        {note && (
+          <div className="flex justify-between">
+            <span className="text-sm text-muted-foreground">
+              Catatan
+            </span>
+
+            <span className="text-sm font-medium text-foreground">
+              {note}
+            </span>
           </div>
-          <h2 className="text-lg font-bold text-foreground mb-1">Transfer Berhasil!</h2>
-          <p className="text-sm text-muted-foreground mb-1">{formatRupiah(Number(amount))} dikirim ke</p>
-          <p className="text-sm font-semibold text-foreground mb-6">{selected.name}</p>
-          <div className="bg-card rounded-2xl shadow-sm px-5 py-4 w-full mb-6">
-            <div className="flex justify-between mb-2">
-              <span className="text-xs text-muted-foreground">Referensi</span>
-              <span className="text-xs font-mono font-medium text-foreground">TRF-20240622-001</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-xs text-muted-foreground">Waktu</span>
-              <span className="text-xs font-medium text-foreground">22 Jun 2024, 10:45</span>
-            </div>
-          </div>
-          <button
-            onClick={handleReset}
-            className="w-full py-4 rounded-2xl text-sm font-bold text-white"
-            style={{ background: "linear-gradient(135deg, #1A3A6B, #2563EB)" }}
+        )}
+
+        <div className="flex justify-between pt-2 border-t border-border">
+          <span className="text-sm font-bold text-foreground">
+            Total
+          </span>
+
+          <span
+            className="text-sm font-bold"
+            style={{ color: "#1A3A6B" }}
           >
-            Selesai
-          </button>
+            {formatRupiah(Number(amount))}
+          </span>
         </div>
-      )}
+      </div>
     </div>
-  );
-}
 
+    <div className="flex gap-3">
+      <button
+        onClick={() => setStep("amount")}
+        className="flex-1 py-4 rounded-2xl text-sm font-bold border border-border text-foreground"
+      >
+        Kembali
+      </button>
+
+      <button
+        onClick={handleSend}
+        disabled={Number(amount) > balance}
+        className="flex-[2] py-4 rounded-2xl text-sm font-bold text-white disabled:opacity-40"
+        style={{
+          background:
+            "linear-gradient(135deg, #1A3A6B, #2563EB)",
+        }}
+      >
+        Kirim Sekarang
+      </button>
+    </div>
+  </div>
+)}
 function HistoryScreen({ transactions }: { transactions: Transaction[] }) {
   const [filter, setFilter] = useState<"semua" | "masuk" | "keluar">("semua");
   const filtered = filter === "semua" ? transactions : transactions.filter((t) => (filter === "masuk" ? t.type === "in" : t.type === "out"));
