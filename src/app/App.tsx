@@ -2240,7 +2240,6 @@ function TransferScreen({
     setAmount("");
     setNote("");
   };
-
   return (
     <div
       className="flex flex-col h-full overflow-y-auto pb-24"
