@@ -2727,7 +2727,12 @@ export default function App() {
     console.error("Gagal memperbarui data siswa:", error);
   }
 };
+const applyTransaction = async (_entry: NewTransaction) => {
+  await refreshBalance();
+};
 
+  setLastUpdated(new Date());
+};
   if (!isLoggedIn || !currentUser) {
     return (
       <LoginScreen
