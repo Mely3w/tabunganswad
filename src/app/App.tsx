@@ -2182,16 +2182,19 @@ function HomeScreen({
           onClose={() => setReminderOpen(false)}
         />
       )}
-      {tabungOpen && (
-  <TabungModal
-    onClose={() => setTabungOpen(false)}
-    onDeposit={async (amount) => {
-      await createDeposit(amount);
-      await onRefresh();
-    }}
-  />
-)}
-      
+        {tabungOpen && (
+    <TabungModal
+      onClose={() => setTabungOpen(false)}
+      onDeposit={async (amount) => {
+        await createDeposit(amount);
+        await onRefresh();
+      }}
+    />
+  )}
+</div>
+);
+}
+
 function TransferScreen({
   balance,
   onTransfer,
@@ -2225,11 +2228,11 @@ function TransferScreen({
     if (Number(amount) > balance) return;
 
     onTransfer({
-      name: `Transfer ke ${selected.name}`,
-      type: "out",
-      amount: Number(amount),
-      category: "Transfer Keluar",
-    });
+  name: `Transfer ke ${selected.name}`,
+  type: "out",
+  amount: Number(amount),
+  category: "Transfer Keluar",
+});
 
     setStep("success");
   };
@@ -2240,7 +2243,8 @@ function TransferScreen({
     setAmount("");
     setNote("");
   };
-  return (
+  
+    return (
     <div
       className="flex flex-col h-full overflow-y-auto pb-24"
       style={{ scrollbarWidth: "none" }}
