@@ -3015,6 +3015,19 @@ export default function App() {
   const [liveTransactions, setLiveTransactions] =
     useState<Transaction[]>([]);
 
+useEffect(() => {
+    const savedTransactions = localStorage.getItem("myTransactions");
+    if (savedTransactions) {
+      setLiveTransactions(JSON.parse(savedTransactions));
+    }
+  }, []);
+
+  useEffect(() => {
+    if (liveTransactions.length > 0) {
+      localStorage.setItem("myTransactions", JSON.stringify(liveTransactions));
+    }
+  }, [liveTransactions]);
+  
   const applyTransaction = (transactionData: any) => {
   setLiveTransactions((prev) => [transactionData, ...prev]);
   const newNotif = {
