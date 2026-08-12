@@ -12,9 +12,10 @@ import {
   addStudent,
   importStudents,
   getStudentAccount, 
-  getStudentTransactions, 
+  getStudentTransactions,
   createDeposit,
-  type AuthUser 
+  createPayment,
+  type AuthUser
 } from "./lib/api";
 import {
   Home,
