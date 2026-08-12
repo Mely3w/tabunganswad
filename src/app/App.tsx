@@ -3043,6 +3043,17 @@ export default function App() {
       },
     ]);
 
+const handleConfirmDeposit = async (amount: number) => {
+  try {
+    await createDeposit(amount);
+    await loadStudentData(); // atau loadStudentAccount();
+
+    alert("Setoran berhasil diproses!");
+  } catch (error: any) {
+    alert(error.message);
+  }
+};
+
   useEffect(() => {
     if (!currentUser || currentUser.role !== "student") {
       return;
