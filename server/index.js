@@ -340,6 +340,43 @@ app.use((error, _req, res, _next) => {
   res.status(500).json({ message: "Terjadi kesalahan pada server." });
 });
 
+app.post("/api/student/deposit", authenticate, allowRole("student"), (req, res) => {
+  const amount = Number(req.body?.amount);
+  const note = String(req.body?.note || "Setoran tunai");
+
+  if (!amount || amount <= 0) {
+    return res.status(400).json({ message: "Nominal setoran tidak valid." });
+  }
+
+  const account = db.prepare("SELECT id, balance FROM accounts WHERE user_id = ?").get(req.auth.sub);
+  if (!account) {
+    return res.status(404).json({ message: "Akun tabungan tidak ditemukan." });
+  }
+
+  db.exec("BEGIN");
+  try {
+    // Buat transaksi dengan status 'pending' atau langsung 'completed' sesuai alur aplikasi Anda
+    const insertTransaction = db.prepare(`
+      INSERT INTO transactions (account_id, amount, type, category, note, status)
+      VALUES (?, ?, 'in', 'Setoran Tunai', ?, 'pending')
+    `);
+    const transResult = insertTransaction.run(account.id, amount, note);
+
+    const newTransaction = db.prepare("SELECT id, amount, type, category, note, status, created_at FROM transactions WHERE id = ?").get(transResult.lastInsertRowid);
+
+    db.exec("COMMIT");
+    return res.json({
+      message: "Permintaan setoran berhasil dikirim dan menunggu persetujuan.",
+      balance: account.balance,
+      transaction: newTransaction
+    });
+  } catch (error) {
+    try { db.exec("ROLLBACK"); } catch (e) {}
+    console.error(error);
+    return res.status(500).json({ message: "Gagal memproses setoran di server." });
+  }
+});
+
 migrate();
 const serverPort = Number(process.env.PORT) || port;
 app.listen(serverPort, '0.0.0.0', () => {
