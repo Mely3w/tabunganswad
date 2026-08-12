@@ -3086,13 +3086,19 @@ export default function App() {
 
  const [notifications, setNotifications] = useState<any[]>([]);
 
-  useEffect(() => {
-    const savedNotifs = localStorage.getItem("myNotifs");
-    if (savedNotifs) {
-      setNotifications(JSON.parse(savedNotifs));
+ useEffect(() => {
+  const savedNotifs = localStorage.getItem("myNotifs");
+  if (savedNotifs) {
+    try {
+      const parsed = JSON.parse(savedNotifs);
+      // Gabungkan dengan notifikasi lain jika ada (misal dari state 'notifications')
+      setNotifications((prev: any) => [...parsed, ...prev]);
+    } catch (e) {
+      console.error("Gagal memuat notifikasi:", e);
     }
-  }, []);
-
+  }
+}, []);
+  
   useEffect(() => {
     if (currentUser && currentUser.role === "student") {
       fetchServerData();
