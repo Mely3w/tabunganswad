@@ -190,6 +190,19 @@ app.get("/api/student/transactions", authenticate, allowRole("student"), (req, r
   return res.json({ transactions: rows });
 });
 
+app.get("/api/student/notifications", authenticate, allowRole("student"), (req, res) => {
+  const notifications = db.prepare(`
+    SELECT t.id, t.category, t.amount, t.status, t.created_at, t.note
+    FROM transactions t
+    JOIN accounts a ON a.id = t.account_id
+    WHERE a.user_id = ?
+    ORDER BY t.created_at DESC
+    LIMIT 10
+  `).all(req.auth.sub);
+
+  return res.json({ notifications });
+});
+
 app.get("/api/student/contacts", authenticate, allowRole("student"), (req, res) => {
   const contacts = db.prepare(`
     SELECT
