@@ -263,3 +263,31 @@ export const addStudent = (data: {
       body: JSON.stringify(data),
     },
   );
+
+export async function importStudents(file: File) {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const response = await fetch(
+    `${API_BASE_URL}/api/admin/import-students`,
+    {
+      method: "POST",
+      headers: {
+        ...(getToken()
+          ? {
+              Authorization: `Bearer ${getToken()}`,
+            }
+          : {}),
+      },
+      body: formData,
+    },
+  );
+
+  const body = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(body.message || "Import siswa gagal.");
+  }
+
+  return body;
+}
