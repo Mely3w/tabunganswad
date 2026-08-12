@@ -1432,7 +1432,7 @@ const alasanOptions = [
   "Lainnya",
 ];
 
-function TarikModal({ onClose }: { onClose: () => void }) {
+function TarikModal({ onClose, onSubmit }: { onClose: () => void; onSubmit?: (amount: number, alasan: string) => Promise<void> }) {
   const [tab, setTab] = useState<TarikTab>("ajukan");
   const [amount, setAmount] = useState("");
   const [alasan, setAlasan] = useState("");
@@ -1442,12 +1442,20 @@ function TarikModal({ onClose }: { onClose: () => void }) {
   const tgl = now.toLocaleDateString("id-ID", { day: "2-digit", month: "long", year: "numeric" });
   const jam = now.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
 
-  const handleAjukan = () => {
+  const handleAjukan = async () => {
     if (!amount || !alasan) return;
-    setSubmitted(true);
-    setTab("status");
+    
+    try {
+      if (onSubmit) {
+        const nominal = parseInt(amount.replace(/[^0-9]/g, ""), 10);
+        await onSubmit(nominal, alasan);
+      }
+      setSubmitted(true);
+      setTab("status");
+    } catch (error: any) {
+      alert(error.message || "Gagal mengajukan penarikan ke server.");
+    }
   };
-
   const statusColor: Record<string, { bg: string; text: string; label: string }> = {
     disetujui: { bg: "#DCFCE7", text: "#16A34A", label: "Disetujui" },
     ditolak: { bg: "#FEE2E2", text: "#DC2626", label: "Ditolak" },
@@ -2407,14 +2415,15 @@ const [notifOpen, setNotifOpen] = useState(false);
         />
       )}
       {bayarOpen && <BayarModal onClose={() => setBayarOpen(false)} balance={balance} onPayment={onTransaction} />}
-      {tarikOpen && <TarikModal onClose={() => setTarikOpen(false)} />}
-      {reminderOpen && (
-        <ReminderModal
-          config={reminderConfig}
-          onSave={(c) => setReminderConfig(c)}
-          onClose={() => setReminderOpen(false)}
-        />
-      )}
+      {tarikOpen && (
+  <TarikModal 
+    onClose={() => setTarikOpen(false)} 
+    onSubmit={async (nominal, alasan) => {
+      await createPayment(nominal, "Penarikan Tunai", alasan);
+      await fetchServerData();
+    }}
+  />
+)}
         {tabungOpen && (
     <TabungModal
       onClose={() => setTabungOpen(false)}
