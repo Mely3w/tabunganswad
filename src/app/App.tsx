@@ -3015,6 +3015,10 @@ export default function App() {
   const [liveTransactions, setLiveTransactions] =
     useState<Transaction[]>([]);
 
+  const applyTransaction = (transactionData: any) => {
+  console.log("Melakukan transaksi:", transactionData);
+};
+
   const [lastUpdated, setLastUpdated] =
     useState(new Date());
 
