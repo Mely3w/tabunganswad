@@ -437,10 +437,25 @@ app.post("/api/student/payment", authenticate, (req, res) => {
     return res.status(500).json({ message: "Terjadi kesalahan pada server." });
   }
 });
+app.post("/api/student/payment", authenticate, (req, res) => {
+  const { amount, category, note } = req.body;
+  const parsedAmount = Number(amount);
+
+  if (!parsedAmount || parsedAmount <= 0) {
+    return res.status(400).json({ message: "Nominal penarikan tidak valid." });
+  }
+
+  const account = db.prepare("SELECT id, balance FROM accounts WHERE user_id = ?").get(req.auth.sub);
+  if (!account) {
+    return res.status(404).json({ message: "Akun tabungan tidak ditemukan." });
+  }
+
+  if (account.balance < parsedAmount) {
+    return res.status(400).json({ message: "Saldo tidak mencukupi untuk penarikan." });
+  }
 
   db.exec("BEGIN");
   try {
-  
     const insertTransaction = db.prepare(`
       INSERT INTO transactions (account_id, amount, type, category, note, status)
       VALUES (?, ?, 'out', ?, ?, 'pending')
@@ -461,7 +476,6 @@ app.post("/api/student/payment", authenticate, (req, res) => {
     return res.status(500).json({ message: "Terjadi kesalahan pada server." });
   }
 });
-
 migrate();
 const serverPort = Number(process.env.PORT) || port;
 app.listen(serverPort, '0.0.0.0', () => {
