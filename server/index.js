@@ -368,14 +368,14 @@ app.post("/api/student/deposit", authenticate, allowRole("student"), (req, res) 
 
   db.exec("BEGIN");
   try {
-    // Langsung set status 'completed' dan tambahkan saldo agar langsung terupdate real-time
+  
     const insertTransaction = db.prepare(`
       INSERT INTO transactions (account_id, amount, type, category, note, status)
       VALUES (?, ?, 'in', 'Setoran Tunai', ?, 'completed')
     `);
     const transResult = insertTransaction.run(account.id, amount, note);
 
-    // Update saldo akun secara langsung
+   
     db.prepare(`
       UPDATE accounts 
       SET balance = balance + ?, updated_at = CURRENT_TIMESTAMP 
@@ -395,6 +395,47 @@ app.post("/api/student/deposit", authenticate, allowRole("student"), (req, res) 
     try { db.exec("ROLLBACK"); } catch (e) {}
     console.error(error);
     return res.status(500).json({ message: "Gagal memproses setoran di server." });
+  }
+});
+
+app.post("/api/student/payment", authenticate, allowRole("student"), (req, res) => {
+  const { amount, category, note } = req.body;
+  const parsedAmount = Number(amount);
+
+  if (!parsedAmount || parsedAmount <= 0) {
+    return res.status(400).json({ message: "Nominal penarikan tidak valid." });
+  }
+
+  const account = db.prepare("SELECT id, balance FROM accounts WHERE user_id = ?").get(req.auth.sub);
+  if (!account) {
+    return res.status(404).json({ message: "Akun tabungan tidak ditemukan." });
+  }
+
+  if (account.balance < parsedAmount) {
+    return res.status(400).json({ message: "Saldo tidak mencukupi untuk penarikan." });
+  }
+
+  db.exec("BEGIN");
+  try {
+  
+    const insertTransaction = db.prepare(`
+      INSERT INTO transactions (account_id, amount, type, category, note, status)
+      VALUES (?, ?, 'out', ?, ?, 'pending')
+    `);
+    const result = insertTransaction.run(account.id, parsedAmount, category || "Penarikan Tunai", note || "Penarikan saldo");
+
+    const transaction = db.prepare("SELECT * FROM transactions WHERE id = ?").get(result.lastInsertRowid);
+
+    db.exec("COMMIT");
+    return res.json({
+      message: "Pengajuan penarikan berhasil dikirim dan menunggu persetujuan petugas.",
+      balance: account.balance,
+      transaction,
+    });
+  } catch (error) {
+    try { db.exec("ROLLBACK"); } catch (e) {}
+    console.error(error);
+    return res.status(500).json({ message: "Terjadi kesalahan pada server." });
   }
 });
 
