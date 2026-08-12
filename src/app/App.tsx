@@ -3039,41 +3039,53 @@ export default function App() {
 
  const [notifications, setNotifications] = useState<any[]>([]);
 
-   useEffect(() => {
-    const savedTransactions = localStorage.getItem("myTransactions");
-    if (savedTransactions) {
-      setLiveTransactions(JSON.parse(savedTransactions));
-    }
-
+  useEffect(() => {
     const savedNotifs = localStorage.getItem("myNotifs");
     if (savedNotifs) {
       setNotifications(JSON.parse(savedNotifs));
     }
   }, []);
 
-  useEffect(() => {
-    if (liveTransactions.length > 0) {
-      localStorage.setItem("myTransactions", JSON.stringify(liveTransactions));
-    }
-  }, [liveTransactions]);
-
-  useEffect(() => {
-     if (notifications && notifications.length > 0) {
-      localStorage.setItem("myNotifs", JSON.stringify(notifications));
-    }
-  }, [notifications]);
-  
-const handleConfirmDeposit = async (amount: number) => {
+  const fetchServerData = async () => {
     try {
-      await createDeposit(amount);
-      await refreshBalance();
+      const accountData = await getStudentAccount();
+      if (accountData && accountData.account) {
+        setBalance(accountData.account.balance);
+      }
 
-      alert("Setoran berhasil diproses!");
-    } catch (error: any) {
-      alert(error.message);
+      const txData = await getStudentTransactions();
+      if (txData && txData.transactions) {
+        setLiveTransactions(txData.transactions);
+      }
+    } catch (error) {
+      console.error("Gagal mengambil data dari server", error);
     }
   };
 
+  useEffect(() => {
+    if (currentUser && currentUser.role === "student") {
+      fetchServerData();
+    }
+  }, [currentUser]);
+      
+const handleConfirmDeposit = async (amount: number) => {
+  try {
+    await createDeposit(amount);
+    
+    if (typeof refreshBalance === "function") {
+      await refreshBalance();
+    }
+
+    const txData = await getStudentTransactions();
+    if (txData && txData.transactions) {
+      setLiveTransactions(txData.transactions);
+    }
+
+    alert("Setoran berhasil diproses dan disinkronkan ke server!");
+  } catch (error: any) {
+    alert(error.message || "Gagal melakukan setoran");
+  }
+};
   useEffect(() => {
     if (!currentUser || currentUser.role !== "student") {
       return;
