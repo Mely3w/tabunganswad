@@ -3028,18 +3028,23 @@ useEffect(() => {
     }
   }, [liveTransactions]);
   
-  const applyTransaction = (transactionData: any) => {
+ const applyTransaction = (transactionData: any) => {
   setLiveTransactions((prev) => [transactionData, ...prev]);
-  const newNotif = {
-    id: Date.now(), // ID unik berdasarkan waktu
-    kategori: "Transaksi",
-    judul: "Transaksi Berhasil",
-    pesan: `Transaksi sebesar Rp${transactionData.jumlah} telah diproses.`,
+  const isIn = transactionData.type === "in";
+  const newNotif: Notif = {
+    id: Date.now(),
+    kategori: isIn ? "setoran" : "transfer",
+    judul: isIn ? "Transaksi Masuk Berhasil" : "Transaksi Keluar Berhasil",
+    pesan: transactionData.name || `${transactionData.category} senilai ${formatRupiah(transactionData.amount)} berhasil diproses.`,
     waktu: "Baru saja",
+    dibaca: false,
+    nominal: transactionData.amount,
+    positif: isIn,
   };
+
   setNotifications((prev) => [newNotif, ...prev]);
-  
-  console.log("Transaksi berhasil disimpan:", transactionData);
+
+  console.log("Transaksi dan Notifikasi berhasil disinkronkan:", transactionData);
 };
 
   const [lastUpdated, setLastUpdated] =
