@@ -2267,14 +2267,15 @@ function HomeScreen({
   const [tarikOpen, setTarikOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [reminderOpen, setReminderOpen] = useState(false);
-  const belumDibacaCount = notifAwal.filter((n) => !n.dibaca).length;
-  const [reminderConfig, setReminderConfig] = useState<ReminderConfig>({
-    aktif: true,
-    frekuensi: "mingguan",
-    waktu: "07:00",
-    hari: [1, 5],
-    tanggal: 1,
-  });
+ const [reminderOpen, setReminderOpen] = useState(false);
+  const belumDibacaCount = notifications.filter((n) => !n.dibaca).length;
+    const [reminderConfig, setReminderConfig] = useState<ReminderConfig>({
+      aktif: true,
+      frekuensi: "mingguan",
+      waktu: "07:00",
+      hari: [1, 5],
+      tanggal: 1,
+    });
   const totalMasuk = transactions.filter((t) => t.type === "in").reduce((total, t) => total + t.amount, 0);
   const totalKeluar = transactions.filter((t) => t.type === "out").reduce((total, t) => total + t.amount, 0);
 
