@@ -2416,16 +2416,35 @@ const [notifOpen, setNotifOpen] = useState(false);
         />
       )}
       {bayarOpen && <BayarModal onClose={() => setBayarOpen(false)} balance={balance} onPayment={onTransaction} />}
-    {tarikOpen && (
+ 
+      {tarikOpen && (
   <TarikModal 
     onClose={() => setTarikOpen(false)} 
     onSubmit={async (nominal, alasan) => {
       await createPayment(nominal, "Penarikan Tunai", alasan);
-    
+      
+      // Buat data notifikasi baru untuk penarikan
+      const newNotif = {
+        id: Date.now(),
+        kategori: "transfer",
+        judul: "Pengajuan Penarikan Terkirim",
+        pesan: `Penarikan tunai senilai Rp ${nominal.toLocaleString("id-ID")} berhasil diajukan dan menunggu persetujuan petugas.`,
+        waktu: "Baru saja",
+        dibaca: false,
+        nominal: nominal,
+        positif: false,
+      };
+
+      // Ambil notif lama yang ada di localStorage, lalu gabungkan dengan yang baru
+      const existingNotifs = JSON.parse(localStorage.getItem("myNotifs") || "[]");
+      const updatedNotifs = [newNotif, ...existingNotifs];
+      localStorage.setItem("myNotifs", JSON.stringify(updatedNotifs));
+
+      // Segarkan halaman
       window.location.reload();
     }}
   />
-)}        
+)}    
       
       {tabungOpen && (
     <TabungModal
