@@ -3014,19 +3014,6 @@ export default function App() {
 
   const [liveTransactions, setLiveTransactions] =
     useState<Transaction[]>([]);
-
-useEffect(() => {
-    const savedTransactions = localStorage.getItem("myTransactions");
-    if (savedTransactions) {
-      setLiveTransactions(JSON.parse(savedTransactions));
-    }
-  }, []);
-
-  useEffect(() => {
-    if (liveTransactions.length > 0) {
-      localStorage.setItem("myTransactions", JSON.stringify(liveTransactions));
-    }
-  }, [liveTransactions]);
   
  const applyTransaction = (transactionData: any) => {
   setLiveTransactions((prev) => [transactionData, ...prev]);
@@ -3050,41 +3037,32 @@ useEffect(() => {
   const [lastUpdated, setLastUpdated] =
     useState(new Date());
 
-  const [notifications, setNotifications] =
-    useState<Notif[]>([
-      {
-        id: 1,
-        kategori: "spp",
-        judul: "Pengingat Pembayaran SPP",
-        pesan:
-          "SPP bulan ini belum dibayar. Segera lakukan pembayaran.",
-        waktu: "Baru saja",
-        dibaca: false,
-      },
-      {
-        id: 2,
-        kategori: "setoran",
-        judul: "Setoran Berhasil",
-        pesan:
-          "Tabungan kamu berhasil disetor. Saldo kamu bertambah.",
-        waktu: "2 jam lalu",
-        dibaca: false,
-        nominal: 100000,
-        positif: true,
-      },
-      {
-        id: 3,
-        kategori: "transfer",
-        judul: "Transfer Berhasil",
-        pesan:
-          "Transfer ke Budi Santoso berhasil diproses.",
-        waktu: "Kemarin, 10:23",
-        dibaca: false,
-        nominal: 50000,
-        positif: false,
-      },
-    ]);
+ const [notifications, setNotifications] = useState<any[]>([]);
 
+   useEffect(() => {
+    const savedTransactions = localStorage.getItem("myTransactions");
+    if (savedTransactions) {
+      setLiveTransactions(JSON.parse(savedTransactions));
+    }
+
+    const savedNotifs = localStorage.getItem("myNotifs");
+    if (savedNotifs) {
+      setNotifications(JSON.parse(savedNotifs));
+    }
+  }, []);
+
+  useEffect(() => {
+    if (liveTransactions.length > 0) {
+      localStorage.setItem("myTransactions", JSON.stringify(liveTransactions));
+    }
+  }, [liveTransactions]);
+
+  useEffect(() => {
+     if (notifications && notifications.length > 0) {
+      localStorage.setItem("myNotifs", JSON.stringify(notifications));
+    }
+  }, [notifications]);
+  
 const handleConfirmDeposit = async (amount: number) => {
     try {
       await createDeposit(amount);
