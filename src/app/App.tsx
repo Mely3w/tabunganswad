@@ -2416,12 +2416,13 @@ const [notifOpen, setNotifOpen] = useState(false);
         />
       )}
       {bayarOpen && <BayarModal onClose={() => setBayarOpen(false)} balance={balance} onPayment={onTransaction} />}
-      {tarikOpen && (
+     {tarikOpen && (
   <TarikModal 
     onClose={() => setTarikOpen(false)} 
     onSubmit={async (nominal, alasan) => {
       await createPayment(nominal, "Penarikan Tunai", alasan);
-      await fetchServerData();
+  
+      window.location.reload();
     }}
   />
 )}
