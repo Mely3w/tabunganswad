@@ -398,7 +398,7 @@ app.post("/api/student/deposit", authenticate, allowRole("student"), (req, res) 
   }
 });
 
-app.post("/api/student/payment", authenticate, allowRole("student"), (req, res) => {
+app.post("/api/student/payment", authenticate, (req, res) => {
   const { amount, category, note } = req.body;
   const parsedAmount = Number(amount);
 
@@ -414,6 +414,29 @@ app.post("/api/student/payment", authenticate, allowRole("student"), (req, res) 
   if (account.balance < parsedAmount) {
     return res.status(400).json({ message: "Saldo tidak mencukupi untuk penarikan." });
   }
+
+  db.exec("BEGIN");
+  try {
+    const insertTransaction = db.prepare(`
+      INSERT INTO transactions (account_id, amount, type, category, note, status)
+      VALUES (?, ?, 'out', ?, ?, 'pending')
+    `);
+    const result = insertTransaction.run(account.id, parsedAmount, category || "Penarikan Tunai", note || "Penarikan saldo");
+
+    const transaction = db.prepare("SELECT * FROM transactions WHERE id = ?").get(result.lastInsertRowid);
+
+    db.exec("COMMIT");
+    return res.json({
+      message: "Pengajuan penarikan berhasil dikirim dan menunggu persetujuan petugas.",
+      balance: account.balance,
+      transaction,
+    });
+  } catch (error) {
+    try { db.exec("ROLLBACK"); } catch (e) {}
+    console.error(error);
+    return res.status(500).json({ message: "Terjadi kesalahan pada server." });
+  }
+});
 
   db.exec("BEGIN");
   try {
