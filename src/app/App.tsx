@@ -3016,7 +3016,17 @@ export default function App() {
     useState<Transaction[]>([]);
 
   const applyTransaction = (transactionData: any) => {
-  console.log("Melakukan transaksi:", transactionData);
+  setLiveTransactions((prev) => [transactionData, ...prev]);
+  const newNotif = {
+    id: Date.now(), // ID unik berdasarkan waktu
+    kategori: "Transaksi",
+    judul: "Transaksi Berhasil",
+    pesan: `Transaksi sebesar Rp${transactionData.jumlah} telah diproses.`,
+    waktu: "Baru saja",
+  };
+  setNotifications((prev) => [newNotif, ...prev]);
+  
+  console.log("Transaksi berhasil disimpan:", transactionData);
 };
 
   const [lastUpdated, setLastUpdated] =
