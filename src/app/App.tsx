@@ -8,10 +8,11 @@ import {
   login, 
   logout, 
   setStudentStatus, 
-  addStudent, 
+  addStudent,
+  importStudents,
   getStudentAccount, 
   getStudentTransactions, 
-  createDeposit, 
+  createDeposit,
   type AuthUser 
 } from "./lib/api";
 import {
