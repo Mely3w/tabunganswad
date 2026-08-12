@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import logoBankMini from "../../logo-bank-mini.png";
+import HistoryScreen from "./components/HistoryScreen";
 import { 
   approveTransaction, 
   getAdminDashboard, 
