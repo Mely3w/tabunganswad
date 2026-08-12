@@ -1853,16 +1853,16 @@ const notifIcon: Record<NotifKategori, { icon: React.ElementType; bg: string; co
   spp: { icon: Bell, bg: "#FEF3C7", color: "#D97706" },
 };
 
-function NotifPanel({ onClose }: { onClose: () => void }) {
-  const [notifs, setNotifs] = useState<Notif[]>(notifAwal);
+function NotifPanel({ notifications, onNotificationsChange, onClose }: any) {
   const [filter, setFilter] = useState<"semua" | "belum">("semua");
 
-  const belumDibaca = notifs.filter((n) => !n.dibaca).length;
-  const filtered = filter === "belum" ? notifs.filter((n) => !n.dibaca) : notifs;
+  const belumDibaca = notifications ? notifications.filter((n: any) => !n.dibaca).length : 0;
+  const filtered = filter === "belum" ? notifications.filter((n: any) => !n.dibaca) : notifications;
 
-  const bacaSemua = () => setNotifs((prev) => prev.map((n) => ({ ...n, dibaca: true })));
-  const bacaSatu = (id: number) => setNotifs((prev) => prev.map((n) => n.id === id ? { ...n, dibaca: true } : n));
+  const bacaSemua = () => onNotificationsChange((prev: any[]) => prev.map((n) => ({ ...n, dibaca: true })));
+  const bacaSatu = (id: number) => onNotificationsChange((prev: any[]) => prev.map((n) => n.id === id ? { ...n, dibaca: true } : n));
 
+  
   return (
     <div className="absolute inset-0 z-50 flex flex-col bg-background" style={{ borderRadius: 40 }}>
       {/* Header */}
