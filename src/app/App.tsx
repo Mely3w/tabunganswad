@@ -2247,6 +2247,8 @@ function HomeScreen({
   lastUpdated,
   onRefresh,
   onTransaction,
+  notifications,
+  onNotificationsChange,
 }: {
   user: AuthUser;
   onTransfer: () => void;
@@ -2255,7 +2257,10 @@ function HomeScreen({
   lastUpdated: Date;
   onRefresh: () => void;
   onTransaction: (entry: NewTransaction) => void;
+  notifications: Notif[];
+  onNotificationsChange: React.Dispatch<React.SetStateAction<Notif[]>>;
 }) {
+  const belumDibacaCount = notifications.filter((n) => !n.dibaca).length;
   const [balanceVisible, setBalanceVisible] = useState(true);
   const [tabungOpen, setTabungOpen] = useState(false);
   const [bayarOpen, setBayarOpen] = useState(false);
@@ -2395,7 +2400,13 @@ function HomeScreen({
         </div>
       </div>
 
-      {notifOpen && <NotifPanel onClose={() => setNotifOpen(false)} />}
+     {notifOpen && (
+        <NotifPanel
+          notifications={notifications}
+          onNotificationsChange={onNotificationsChange}
+          onClose={() => setNotifOpen(false)}
+        />
+      )}
       {bayarOpen && <BayarModal onClose={() => setBayarOpen(false)} balance={balance} onPayment={onTransaction} />}
       {tarikOpen && <TarikModal onClose={() => setTarikOpen(false)} />}
       {reminderOpen && (
@@ -3044,15 +3055,15 @@ export default function App() {
     ]);
 
 const handleConfirmDeposit = async (amount: number) => {
-  try {
-    await createDeposit(amount);
-    await loadStudentData(); // atau loadStudentAccount();
+    try {
+      await createDeposit(amount);
+      await refreshBalance();
 
-    alert("Setoran berhasil diproses!");
-  } catch (error: any) {
-    alert(error.message);
-  }
-};
+      alert("Setoran berhasil diproses!");
+    } catch (error: any) {
+      alert(error.message);
+    }
+  };
 
   useEffect(() => {
     if (!currentUser || currentUser.role !== "student") {
@@ -3087,12 +3098,9 @@ const handleConfirmDeposit = async (amount: number) => {
       const result = await getStudentAccount();
 
       setBalance(result.account.balance);
-      setLastUpdated(
-        new Date(result.account.updatedAt)
-      );
+      setLastUpdated(new Date(result.account.updatedAt));
 
-      const transactionResult =
-        await getStudentTransactions();
+      const transactionResult = await getStudentTransactions();
 
       const mappedTransactions: Transaction[] =
         transactionResult.transactions.map((tx) => ({
@@ -3105,22 +3113,33 @@ const handleConfirmDeposit = async (amount: number) => {
         }));
 
       setLiveTransactions(mappedTransactions);
+
+      // Tambahkan notifikasi otomatis jika ada transaksi terbaru
+      if (transactionResult.transactions.length > 0) {
+        const latestTx = transactionResult.transactions[0];
+        const newNotif: Notif = {
+          id: latestTx.id,
+          kategori: latestTx.type === "in" ? "setoran" : "transfer",
+          judul: latestTx.type === "in" ? "Transaksi Masuk Berhasil" : "Transaksi Keluar Berhasil",
+          pesan: latestTx.note || `${latestTx.category} senilai ${latestTx.amount} berhasil diproses.`,
+          waktu: "Baru saja",
+          dibaca: false,
+          nominal: latestTx.amount,
+          positif: latestTx.type === "in",
+        };
+
+        setNotifications((prev) => {
+          if (prev.some((n) => n.id === newNotif.id)) return prev;
+          return [newNotif, ...prev];
+        });
+      }
     } catch (error) {
-      console.error(
-        "Gagal memperbarui data siswa:",
-        error
-      );
+      console.error("Gagal memperbarui data siswa:", error);
     } finally {
       setLastUpdated(new Date());
     }
   };
-
-  const applyTransaction = async (
-    _entry: NewTransaction
-  ) => {
-    await refreshBalance();
-  };
-
+  
   const handleStudentLogout = () => {
     logout();
     setCurrentUser(null);
@@ -3172,7 +3191,7 @@ const handleConfirmDeposit = async (amount: number) => {
       >
         {/* Screen content */}
         <div className="absolute inset-0 overflow-hidden">
-          {screen === "home" && (
+         {screen === "home" && (
             <HomeScreen
               user={currentUser}
               onTransfer={() =>
@@ -3184,9 +3203,7 @@ const handleConfirmDeposit = async (amount: number) => {
               onRefresh={refreshBalance}
               onTransaction={applyTransaction}
               notifications={notifications}
-              onNotificationsChange={
-                setNotifications
-              }
+              onNotificationsChange={setNotifications}
             />
           )}
 
