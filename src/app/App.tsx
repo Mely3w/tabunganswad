@@ -241,6 +241,317 @@ const adminTransactions = [
   { id: 3, student: "Budi Santoso", activity: "Pembayaran koperasi", amount: 25000, time: "Kemarin, 12:10", status: "Selesai", type: "out" },
 ];
 
+function ImportStudentModal({
+  onClose,
+  onSuccess,
+}: {
+  onClose: () => void;
+  onSuccess: (message: string) => void;
+}) {
+  const [file, setFile] = useState<File | null>(null);
+
+  const [students, setStudents] = useState<
+    {
+      name: string;
+      nis: string;
+      className: string;
+      password: string;
+    }[]
+  >([]);
+
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleFileChange = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const selectedFile = e.target.files?.[0];
+
+    if (!selectedFile) return;
+
+    setFile(selectedFile);
+    setStudents([]);
+    setError("");
+
+    try {
+      const XLSX = await import("xlsx");
+
+      const buffer = await selectedFile.arrayBuffer();
+
+      const workbook = XLSX.read(buffer, {
+        type: "array",
+      });
+
+      const sheetName = workbook.SheetNames[0];
+
+      const worksheet = workbook.Sheets[sheetName];
+
+      const rows = XLSX.utils.sheet_to_json<
+        Record<string, unknown>
+      >(worksheet, {
+        defval: "",
+      });
+
+      const mappedStudents = rows.map((row) => ({
+        name: String(
+          row["Nama"] ??
+            row["nama"] ??
+            row["NAMA"] ??
+            "",
+        ).trim(),
+
+        nis: String(
+          row["NIS"] ??
+            row["nis"] ??
+            row["Nis"] ??
+            "",
+        ).trim(),
+
+        className: String(
+          row["Kelas"] ??
+            row["kelas"] ??
+            row["Class"] ??
+            "",
+        ).trim(),
+
+        password: String(
+          row["Password"] ??
+            row["password"] ??
+            "",
+        ).trim(),
+      }));
+
+      const validStudents = mappedStudents.filter(
+        (student) =>
+          student.name &&
+          student.nis &&
+          student.className &&
+          student.password,
+      );
+
+      if (validStudents.length === 0) {
+        setError(
+          "Tidak ditemukan data siswa yang valid. Pastikan kolom Excel adalah Nama, NIS, Kelas, dan Password.",
+        );
+        return;
+      }
+
+      setStudents(validStudents);
+    } catch (err) {
+      console.error(err);
+
+      setError(
+        "File Excel tidak dapat dibaca. Gunakan file .xlsx atau .xls yang valid.",
+      );
+    }
+  };
+
+  const handleImport = async () => {
+    if (!file) {
+      setError("Silakan pilih file Excel terlebih dahulu.");
+      return;
+    }
+
+    if (students.length === 0) {
+      setError("Tidak ada data siswa yang dapat diimport.");
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+
+    try {
+      const result = await importStudents(file);
+
+      onSuccess(
+        result.message ||
+          `${students.length} siswa berhasil diimport.`,
+      );
+
+      onClose();
+    } catch (err) {
+      console.error(err);
+
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Import siswa gagal.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div className="w-full max-w-3xl rounded-2xl bg-white shadow-xl">
+        <div className="flex items-center justify-between border-b p-5">
+          <div>
+            <h2 className="text-lg font-semibold">
+              Upload Siswa Massal
+            </h2>
+
+            <p className="text-sm text-gray-500">
+              Import banyak akun siswa menggunakan file Excel.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-gray-500 hover:text-gray-700"
+          >
+            ✕
+          </button>
+        </div>
+
+        <div className="space-y-5 p-5">
+          <div className="rounded-xl bg-blue-50 p-4">
+            <p className="text-sm font-semibold text-blue-900">
+              Format Excel
+            </p>
+
+            <p className="mt-1 text-sm text-blue-700">
+              Gunakan kolom berikut:
+            </p>
+
+            <div className="mt-3 flex flex-wrap gap-2">
+              {[
+                "Nama",
+                "NIS",
+                "Kelas",
+                "Password",
+              ].map((column) => (
+                <span
+                  key={column}
+                  className="rounded-lg bg-white px-3 py-1.5 text-xs font-medium text-blue-700"
+                >
+                  {column}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="mb-2 block text-sm font-medium text-gray-700">
+              Pilih File Excel
+            </label>
+
+            <input
+              type="file"
+              accept=".xlsx,.xls"
+              onChange={handleFileChange}
+              className="block w-full rounded-xl border border-gray-300 p-3 text-sm"
+            />
+          </div>
+
+          {file && (
+            <div className="rounded-xl border bg-gray-50 p-4">
+              <p className="text-sm font-medium text-gray-800">
+                File: {file.name}
+              </p>
+
+              <p className="mt-1 text-xs text-gray-500">
+                {students.length} data siswa ditemukan.
+              </p>
+            </div>
+          )}
+
+          {students.length > 0 && (
+            <div className="overflow-hidden rounded-xl border">
+              <div className="max-h-64 overflow-auto">
+                <table className="w-full text-sm">
+                  <thead className="sticky top-0 bg-gray-100">
+                    <tr>
+                      <th className="p-3 text-left">
+                        No
+                      </th>
+
+                      <th className="p-3 text-left">
+                        Nama
+                      </th>
+
+                      <th className="p-3 text-left">
+                        NIS
+                      </th>
+
+                      <th className="p-3 text-left">
+                        Kelas
+                      </th>
+                    </tr>
+                  </thead>
+
+                  <tbody>
+                    {students
+                      .slice(0, 50)
+                      .map((student, index) => (
+                        <tr
+                          key={`${student.nis}-${index}`}
+                          className="border-t"
+                        >
+                          <td className="p-3">
+                            {index + 1}
+                          </td>
+
+                          <td className="p-3">
+                            {student.name}
+                          </td>
+
+                          <td className="p-3">
+                            {student.nis}
+                          </td>
+
+                          <td className="p-3">
+                            {student.className}
+                          </td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {students.length > 50 && (
+                <p className="border-t p-3 text-xs text-gray-500">
+                  Menampilkan 50 data pertama dari{" "}
+                  {students.length} siswa.
+                </p>
+              )}
+            </div>
+          )}
+
+          {error && (
+            <div className="rounded-xl bg-red-50 p-4 text-sm text-red-700">
+              {error}
+            </div>
+          )}
+        </div>
+
+        <div className="flex justify-end gap-3 border-t p-5">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={loading}
+            className="rounded-xl border px-5 py-2.5 text-sm font-medium"
+          >
+            Batal
+          </button>
+
+          <button
+            type="button"
+            onClick={handleImport}
+            disabled={loading || students.length === 0}
+            className="rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-medium text-white disabled:opacity-50"
+          >
+            {loading
+              ? "Mengimport..."
+              : `Import ${students.length} Siswa`}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function AddStudentModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: (msg: string) => void }) {
   const [name, setName] = useState("");
   const [username, setUsername] = useState("");
@@ -310,7 +621,7 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
   const [summary, setSummary] = useState({ totalBalance: 18750000, activeStudents: 3, pendingAccounts: 1, pendingTransactions: 1 });
   const [notice, setNotice] = useState("");
   const [isAddOpen, setIsAddOpen] = useState(false);
-
+  const [isImportOpen, setIsImportOpen] = useState(false);
   const visibleAccounts = accounts.filter((student) =>
     `${student.name} ${student.nis} ${student.className}`.toLowerCase().includes(query.toLowerCase()),
   );
@@ -412,19 +723,30 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
 
         {tab === "siswa" && (
           <section className="rounded-2xl bg-white p-4 shadow-sm sm:p-5">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-5">
-              <div>
-                <h2 className="text-lg font-bold">Data siswa</h2>
-                <p className="mt-1 text-xs text-slate-500">Kelola akun dan status tabungan siswa.</p>
-              </div>
-              <button 
-                onClick={() => setIsAddOpen(true)} 
-                className="rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-bold text-white transition-colors hover:bg-blue-700 shadow-sm"
-              >
-                + Tambah siswa
-              </button>
-            </div>
+<div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+  <div>
+    <h2 className="text-lg font-bold">Data siswa</h2>
+    <p className="mt-1 text-xs text-slate-500">
+      Kelola akun dan status tabungan siswa.
+    </p>
+  </div>
 
+  <div className="flex flex-col gap-2 sm:flex-row">
+    <button
+      onClick={() => setIsImportOpen(true)}
+      className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-xs font-bold text-emerald-700 transition-colors hover:bg-emerald-100"
+    >
+      ↑ Upload Excel
+    </button>
+
+    <button
+      onClick={() => setIsAddOpen(true)}
+      className="rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-bold text-white transition-colors hover:bg-blue-700 shadow-sm"
+    >
+      + Tambah siswa
+    </button>
+  </div>
+</div>
             <div className="relative mt-5">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={17} />
               <input 
@@ -463,43 +785,100 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
           </section>
         )}
 
-        {tab === "transaksi" && (
+                {tab === "transaksi" && (
           <section className="rounded-2xl bg-white p-4 shadow-sm sm:p-5">
             <div className="mb-5">
               <h2 className="text-lg font-bold">Data transaksi</h2>
-              <p className="mt-1 text-xs text-slate-500">Tinjau dan setujui transaksi siswa.</p>
+              <p className="mt-1 text-xs text-slate-500">
+                Tinjau dan setujui transaksi siswa.
+              </p>
             </div>
+
             <div className="mt-4 divide-y divide-slate-100">
               {adminRows.map((tx) => (
-                <div key={tx.id} className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
+                <div
+                  key={tx.id}
+                  className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between"
+                >
                   <div>
                     <p className="text-sm font-bold">{tx.student}</p>
-                    <p className="mt-1 text-xs text-slate-500">{tx.activity} · {tx.time}</p>
+                    <p className="mt-1 text-xs text-slate-500">
+                      {tx.activity} · {tx.time}
+                    </p>
                   </div>
+
                   <div className="flex items-center justify-between gap-4 sm:justify-end">
                     <div className="text-right">
-                      <p className={`text-sm font-bold ${tx.type === "in" ? "text-emerald-600" : "text-amber-600"}`}>
-                        {tx.type === "in" ? "+" : "-"}{formatRupiah(tx.amount)}
+                      <p
+                        className={`text-sm font-bold ${
+                          tx.type === "in"
+                            ? "text-emerald-600"
+                            : "text-amber-600"
+                        }`}
+                      >
+                        {tx.type === "in" ? "+" : "-"}
+                        {formatRupiah(tx.amount)}
                       </p>
-                      <span className={`text-xs font-semibold ${tx.status === "Selesai" ? "text-emerald-600" : "text-amber-600"}`}>{tx.status}</span>
+
+                      <span
+                        className={`text-xs font-semibold ${
+                          tx.status === "Selesai"
+                            ? "text-emerald-600"
+                            : "text-amber-600"
+                        }`}
+                      >
+                        {tx.status}
+                      </span>
                     </div>
+
                     {tx.status === "Perlu ditinjau" && (
-                      <button onClick={() => approvePendingTransaction(tx.id)} className="rounded-lg bg-blue-600 px-3 py-2 text-xs font-bold text-white">
+                      <button
+                        onClick={() =>
+                          approvePendingTransaction(tx.id)
+                        }
+                        className="rounded-lg bg-blue-600 px-3 py-2 text-xs font-bold text-white"
+                      >
                         Setujui
                       </button>
                     )}
                   </div>
                 </div>
               ))}
-              {adminRows.length === 0 && <p className="py-8 text-center text-sm text-slate-500">Tidak ada transaksi.</p>}
+
+              {adminRows.length === 0 && (
+                <p className="py-8 text-center text-sm text-slate-500">
+                  Tidak ada transaksi.
+                </p>
+              )}
             </div>
           </section>
+        )}
+
+        {isAddOpen && (
+          <AddStudentModal
+            onClose={() => setIsAddOpen(false)}
+            onSuccess={(message) => {
+              setIsAddOpen(false);
+              setNotice(message);
+              void loadAdminData();
+            }}
+          />
+        )}
+
+        {isImportOpen && (
+          <ImportStudentModal
+            onClose={() => setIsImportOpen(false)}
+            onSuccess={(message) => {
+              setIsImportOpen(false);
+              setNotice(message);
+              void loadAdminData();
+            }}
+          />
         )}
       </main>
     </div>
   );
 }
-
 function AdminMetric({ icon: Icon, label, value, tone }: { icon: React.ElementType; label: string; value: string; tone: "blue" | "violet" | "amber" }) {
   const colors = { blue: "bg-blue-50 text-blue-600", violet: "bg-violet-50 text-violet-600", amber: "bg-amber-50 text-amber-600" };
   return <div className="rounded-2xl bg-white p-4 shadow-sm"><div className={`mb-4 flex h-10 w-10 items-center justify-center rounded-xl ${colors[tone]}`}><Icon size={20} /></div><p className="text-xs font-semibold text-slate-500">{label}</p><p className="mt-1 text-lg font-bold">{value}</p></div>;
