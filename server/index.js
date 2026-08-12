@@ -355,19 +355,27 @@ app.post("/api/student/deposit", authenticate, allowRole("student"), (req, res) 
 
   db.exec("BEGIN");
   try {
-    // Buat transaksi dengan status 'pending' atau langsung 'completed' sesuai alur aplikasi Anda
+    // Langsung set status 'completed' dan tambahkan saldo agar langsung terupdate real-time
     const insertTransaction = db.prepare(`
       INSERT INTO transactions (account_id, amount, type, category, note, status)
-      VALUES (?, ?, 'in', 'Setoran Tunai', ?, 'pending')
+      VALUES (?, ?, 'in', 'Setoran Tunai', ?, 'completed')
     `);
     const transResult = insertTransaction.run(account.id, amount, note);
 
+    // Update saldo akun secara langsung
+    db.prepare(`
+      UPDATE accounts 
+      SET balance = balance + ?, updated_at = CURRENT_TIMESTAMP 
+      WHERE id = ?
+    `).run(amount, account.id);
+
+    const updatedAccount = db.prepare("SELECT balance FROM accounts WHERE id = ?").get(account.id);
     const newTransaction = db.prepare("SELECT id, amount, type, category, note, status, created_at FROM transactions WHERE id = ?").get(transResult.lastInsertRowid);
 
     db.exec("COMMIT");
     return res.json({
-      message: "Permintaan setoran berhasil dikirim dan menunggu persetujuan.",
-      balance: account.balance,
+      message: "Setoran berhasil diproses.",
+      balance: updatedAccount.balance,
       transaction: newTransaction
     });
   } catch (error) {
