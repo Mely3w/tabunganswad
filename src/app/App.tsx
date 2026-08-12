@@ -2416,12 +2416,12 @@ const [notifOpen, setNotifOpen] = useState(false);
         />
       )}
       {bayarOpen && <BayarModal onClose={() => setBayarOpen(false)} balance={balance} onPayment={onTransaction} />}
-     {tarikOpen && (
+    {tarikOpen && (
   <TarikModal 
     onClose={() => setTarikOpen(false)} 
     onSubmit={async (nominal, alasan) => {
       await createPayment(nominal, "Penarikan Tunai", alasan);
-  
+      
       window.location.reload();
     }}
   />
@@ -3025,6 +3025,22 @@ export default function App() {
 
   const [liveTransactions, setLiveTransactions] =
     useState<Transaction[]>([]);
+
+ const fetchServerData = async () => {
+    try {
+      const accountData = await getStudentAccount();
+      if (accountData && accountData.account) {
+        setBalance(accountData.account.balance);
+      }
+
+      const txData = await getStudentTransactions();
+      if (txData && txData.transactions) {
+        setLiveTransactions(txData.transactions);
+      }
+    } catch (error) {
+      console.error("Gagal mengambil data dari server", error);
+    }
+  };
   
  const applyTransaction = (transactionData: any) => {
   setLiveTransactions((prev) => [transactionData, ...prev]);
@@ -3056,22 +3072,6 @@ export default function App() {
       setNotifications(JSON.parse(savedNotifs));
     }
   }, []);
-
-  const fetchServerData = async () => {
-    try {
-      const accountData = await getStudentAccount();
-      if (accountData && accountData.account) {
-        setBalance(accountData.account.balance);
-      }
-
-      const txData = await getStudentTransactions();
-      if (txData && txData.transactions) {
-        setLiveTransactions(txData.transactions);
-      }
-    } catch (error) {
-      console.error("Gagal mengambil data dari server", error);
-    }
-  };
 
   useEffect(() => {
     if (currentUser && currentUser.role === "student") {
