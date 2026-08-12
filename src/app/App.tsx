@@ -2260,15 +2260,13 @@ function HomeScreen({
   notifications: Notif[];
   onNotificationsChange: React.Dispatch<React.SetStateAction<Notif[]>>;
 }) {
-  const belumDibacaCount = notifications.filter((n) => !n.dibaca).length;
   const [balanceVisible, setBalanceVisible] = useState(true);
   const [tabungOpen, setTabungOpen] = useState(false);
   const [bayarOpen, setBayarOpen] = useState(false);
   const [tarikOpen, setTarikOpen] = useState(false);
-  const [notifOpen, setNotifOpen] = useState(false);
-  const [reminderOpen, setReminderOpen] = useState(false);
- const [reminderOpen, setReminderOpen] = useState(false);
-  const belumDibacaCount = notifications.filter((n) => !n.dibaca).length;
+const [notifOpen, setNotifOpen] = useState(false);
+    const [reminderOpen, setReminderOpen] = useState(false);
+    const belumDibacaCount = notifications.filter((n) => !n.dibaca).length;
     const [reminderConfig, setReminderConfig] = useState<ReminderConfig>({
       aktif: true,
       frekuensi: "mingguan",
