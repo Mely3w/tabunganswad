@@ -2420,27 +2420,14 @@ const [notifOpen, setNotifOpen] = useState(false);
   <TarikModal 
     onClose={() => setTarikOpen(false)} 
     onSubmit={async (nominal, alasan) => {
-      const res = await createPayment(nominal, "Penarikan Tunai", alasan);
-      
-      if (res && res.transaction) {
-        const newNotif = {
-          id: Date.now(),
-          kategori: "transfer",
-          judul: "Pengajuan Penarikan Terkirim",
-          pesan: `Penarikan tunai senilai Rp ${nominal.toLocaleString("id-ID")} berhasil diajukan dan menunggu persetujuan petugas.`,
-          waktu: "Baru saja",
-          dibaca: false,
-          nominal: nominal,
-          positif: false,
-        };
-        setNotifications((prev: any) => [newNotif, ...prev]);
-      }
-
+      await createPayment(nominal, "Penarikan Tunai", alasan);
+    
       window.location.reload();
     }}
   />
-)}
-        {tabungOpen && (
+)}        
+      
+      {tabungOpen && (
     <TabungModal
       onClose={() => setTabungOpen(false)}
       onDeposit={async (amount) => {
