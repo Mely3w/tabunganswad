@@ -2429,7 +2429,7 @@ const [notifOpen, setNotifOpen] = useState(false);
       )}
       {bayarOpen && <BayarModal onClose={() => setBayarOpen(false)} balance={balance} onPayment={onTransaction} />}
  
-      {{tarikOpen && (
+      {tarikOpen && (
       <TarikModal
         user={user} 
         onClose={() => setTarikOpen(false)}
