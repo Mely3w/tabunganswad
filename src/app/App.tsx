@@ -2449,25 +2449,37 @@ const [notifOpen, setNotifOpen] = useState(false);
         user={user} 
         onClose={() => setTarikOpen(false)}
         onSubmit={async (nominal, alasan) => {
-      
-      const newNotif = {
-        id: Date.now(),
-        kategori: "transfer",
-        judul: "Pengajuan Penarikan Terkirim",
-        pesan: `Penarikan tunai senilai Rp ${nominal.toLocaleString("id-ID")} berhasil diajukan dan menunggu persetujuan petugas.`,
-        waktu: "Baru saja",
-        dibaca: false,
-        nominal: nominal,
-        positif: false,
-      };
+              try {
+                await api.createTransaction({
+                  student_id: user.id, // Pastikan ID siswa terkirim
+                  type: 'out',
+                  amount: nominal,
+                  note: alasan
+                });
+                
+                const newNotif = {
+                  id: Date.now(),
+                  kategori: "transfer",
+                  judul: "Pengajuan Penarikan Terkirim",
+                  pesan: `Penarikan tunai senilai ${formatRupiah(nominal)} berhasil diajukan dan menunggu persetujuan petugas.`,
+                  waktu: "Baru saja",
+                  dibaca: false,
+                  nominal: nominal,
+                  positif: false,
+                };
+                
+                const existingNotifs = JSON.parse(localStorage.getItem("myNotifs") || "[]");
+                const updatedNotifs = [newNotif, ...existingNotifs];
+                localStorage.setItem("myNotifs", JSON.stringify(updatedNotifs));
 
-      const existingNotifs = JSON.parse(localStorage.getItem("myNotifs") || "[]");
-      const updatedNotifs = [newNotif, ...existingNotifs];
-      localStorage.setItem("myNotifs", JSON.stringify(updatedNotifs));
-          
-setTarikOpen(false);
-alert("Pengajuan penarikan berhasil dibuat dan menunggu persetujuan!");
-    }}
+                setTarikOpen(false);
+                alert("Pengajuan penarikan berhasil dibuat dan menunggu persetujuan admin!");
+
+              } catch (error) {
+                console.error("Gagal mengirim pengajuan:", error);
+                alert("Gagal mengirim pengajuan ke server. Silakan coba lagi.");
+              }
+            }}
   />
 )}    
       
