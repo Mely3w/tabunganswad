@@ -3047,21 +3047,32 @@ export default function App() {
     useState<Transaction[]>([]);
 
  const fetchServerData = async () => {
-    try {
-      const accountData = await getStudentAccount();
-      if (accountData && accountData.account) {
-        setBalance(accountData.account.balance);
-      }
-
-      const txData = await getStudentTransactions();
-      if (txData && txData.transactions) {
-        setLiveTransactions(txData.transactions);
-      }
-    } catch (error) {
-      console.error("Gagal mengambil data dari server", error);
-    }
-  };
+  try {
   
+    const accountData = await getStudentAccount();
+    if (accountData && accountData.account) {
+      setBalance(accountData.account.balance);
+    }
+
+    const txData = await getStudentTransactions();
+    if (txData && txData.transactions) {
+      const formattedNotifs = txData.transactions.map((tx: any) => ({
+        id: tx.id,
+        kategori: tx.type === 'in' ? 'setoran' : 'transfer',
+        judul: tx.status === 'pending' ? 'Pengajuan Diproses' : 'Transaksi Berhasil',
+        pesan: `${tx.note || tx.category} senilai Rp ${tx.amount.toLocaleString("id-ID")}`,
+        waktu: new Date(tx.created_at).toLocaleDateString("id-ID"),
+        dibaca: true,
+        nominal: tx.amount,
+        positif: tx.type === 'in',
+      }));
+      
+      setNotifications(formattedNotifs);
+    }
+  } catch (error) {
+    console.error("Gagal mengambil data dari server", error);
+  }
+};  
  const applyTransaction = (transactionData: any) => {
   setLiveTransactions((prev) => [transactionData, ...prev]);
   const isIn = transactionData.type === "in";
