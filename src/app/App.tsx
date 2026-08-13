@@ -1742,10 +1742,28 @@ function TarikModal({ user, onClose, onSubmit }: { user?: any; onClose: () => vo
                 {statusLabel}
               </span>
             </div>
+            
             <div className="flex items-center justify-between mt-2 pt-2 border-t border-border">
-              <span className="text-[10px] font-mono text-muted-foreground">TRK-{t.id}</span>
+            <span className="text-[10px] font-mono text-muted-foreground">TRK-{t.id}</span>
+            <div className="flex items-center gap-2">
               <span className="text-[10px] text-muted-foreground">Kategori: {t.category || 'Penarikan Tunai'}</span>
+              
+              {/* TOMBOL DOWNLOAD SLIP */}
+              {t.status === 'approved' && (
+                <button 
+                  onClick={() => handleDownloadSlip(t)}
+                  className="text-[10px] bg-primary/10 text-primary font-bold px-2 py-0.5 rounded hover:bg-primary/20 transition-colors"
+                >
+                  Unduh Slip
+                </button>
+              )}
             </div>
+          </div>
+
+            <div className="flex items-center justify-between mt-2 pt-2 border-t border-border">
+            <span className="text-[10px] font-mono text-muted-foreground">TRK-{t.id}</span>
+            <span className="text-[10px] text-muted-foreground">Kategori: {t.category || 'Penarikan Tunai'}</span>
+          </div>
           </div>
         );
       })
@@ -3229,23 +3247,6 @@ const handleConfirmDeposit = async (amount: number) => {
       setLastUpdated(new Date());
     }
   };
-
-  <div className="flex items-center justify-between mt-2 pt-2 border-t border-border">
-  <span className="text-[10px] font-mono text-muted-foreground">TRK-{t.id}</span>
-  <div className="flex items-center gap-2">
-    <span className="text-[10px] text-muted-foreground">Kategori: {t.category || 'Penarikan Tunai'}</span>
-    
-    {/* TOMBOL DOWNLOAD SLIP */}
-    {t.status === 'approved' && (
-      <button 
-        onClick={() => handleDownloadSlip(t)}
-        className="text-[10px] bg-primary/10 text-primary font-bold px-2 py-0.5 rounded hover:bg-primary/20 transition-colors"
-      >
-        Unduh Slip
-      </button>
-    )}
-  </div>
-</div>
   
   const handleStudentLogout = () => {
     logout();
