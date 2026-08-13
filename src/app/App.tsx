@@ -1771,7 +1771,10 @@ function TarikModal({ onClose, onSubmit }: { onClose: () => void; onSubmit?: (am
       Belum ada riwayat penarikan.
     </div>
   )}
-</div> 
+</div>
+)
+}
+              
 type NotifKategori = "setoran" | "penarikan" | "transfer" | "saldo" | "spp";
 
 interface Notif {
