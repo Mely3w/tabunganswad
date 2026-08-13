@@ -1731,7 +1731,7 @@ function TarikModal({ onClose, onSubmit }: { onClose: () => void; onSubmit?: (am
                 </div>
               </div>
 
-              <div className="space-y-2">
+<div className="space-y-2">
   {liveTransactions && liveTransactions.filter((t: any) => t.type === 'out').length > 0 ? (
     liveTransactions
       .filter((t: any) => t.type === 'out')
@@ -1772,7 +1772,6 @@ function TarikModal({ onClose, onSubmit }: { onClose: () => void; onSubmit?: (am
     </div>
   )}
 </div>
-}
 
 type NotifKategori = "setoran" | "penarikan" | "transfer" | "saldo" | "spp";
 
