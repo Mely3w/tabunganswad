@@ -1772,15 +1772,13 @@ function TarikModal({ onClose, onSubmit }: { onClose: () => void; onSubmit?: (am
           </div>
         )}
       </div>
-      )}
+      </>
+    )}
     </div>
     </div>
     </div>
   );
-}
-
-type NotifKategori = "setoran" | "penarikan" | "transfer" | "saldo" | "spp";
-              
+}              
 type NotifKategori = "setoran" | "penarikan" | "transfer" | "saldo" | "spp";
 
 interface Notif {
