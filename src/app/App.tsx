@@ -1533,6 +1533,7 @@ function TarikModal({ user, onClose, onSubmit }: { user?: any; onClose: () => vo
                     type="number"
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault(); }}
                     style={{ color: "#92400E" }}
                   />
                 </div>
@@ -1540,6 +1541,7 @@ function TarikModal({ user, onClose, onSubmit }: { user?: any; onClose: () => vo
                   {[20000, 50000, 100000, 150000, 200000, 500000].map((v) => (
                     <button
                       key={v}
+                      type="button"
                       onClick={() => setAmount(String(v))}
                       className="text-xs font-semibold rounded-xl py-2 border transition-all"
                       style={{
@@ -1561,6 +1563,7 @@ function TarikModal({ user, onClose, onSubmit }: { user?: any; onClose: () => vo
                   {alasanOptions.map((a) => (
                     <button
                       key={a}
+                      type="button"
                       onClick={() => setAlasan(a)}
                       className="text-xs font-semibold rounded-xl px-3 py-2 border transition-all"
                       style={{
@@ -1577,6 +1580,8 @@ function TarikModal({ user, onClose, onSubmit }: { user?: any; onClose: () => vo
                   <input
                     className="w-full bg-muted rounded-xl px-4 py-3 text-sm text-foreground outline-none"
                     placeholder="Jelaskan alasan penarikan..."
+                    onChange={(e) => setAlasan(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault(); }}
                   />
                 )}
               </div>
