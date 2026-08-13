@@ -1418,13 +1418,6 @@ function ReminderCard({ config, onOpen }: { config: ReminderConfig; onOpen: () =
 
 type TarikTab = "ajukan" | "status" | "riwayat";
 
-const riwayatTarik = [
-  { id: "TRK-001", tanggal: "15 Jun 2024", jumlah: 100000, status: "disetujui", petugas: "Bu Ratna" },
-  { id: "TRK-002", tanggal: "02 Jun 2024", jumlah: 50000, status: "disetujui", petugas: "Pak Hendra" },
-  { id: "TRK-003", tanggal: "20 Mei 2024", jumlah: 75000, status: "ditolak", petugas: "Bu Ratna" },
-  { id: "TRK-004", tanggal: "05 Mei 2024", jumlah: 200000, status: "disetujui", petugas: "Pak Hendra" },
-];
-
 const alasanOptions = [
   "Keperluan sekolah",
   "Keperluan keluarga",
@@ -1514,15 +1507,17 @@ function TarikModal({ onClose, onSubmit }: { onClose: () => void; onSubmit?: (am
                 </div>
                 <div className="px-4 py-3 flex items-center justify-between">
                   <div>
-                    <p className="text-xs text-muted-foreground">{currentUser?.name || "Nama Siswa"}</p>
-                    <p className="text-base font-bold font-mono tracking-widest" style={{ color: "#92400E" }}>
-                      {accountData?.account_number || "6813-4043"}
-                    </p>
+                  <p className="text-xs text-muted-foreground">{user?.name}</p>
+                  <p className="text-base font-bold font-mono tracking-widest" style={{ color: "#92400E" }}>
+                    {user?.nis}
+                  </p>
                   </div>
                   <div className="text-right">
-                    <p className="text-xs text-muted-foreground">Saldo tersedia</p>
-                    <p className="text-sm font-bold" style={{ color: "#16A34A" }}>Rp 875.000</p>
-                  </div>
+                  <p className="text-xs text-muted-foreground">Saldo tersedia</p>
+                  <p className="text-sm font-bold" style={{ color: "#16A34A" }}>
+                    {user?.saldo ? formatRupiah(user.saldo) : "Rp 0"}
+                  </p>
+                </div>
                 </div>
               </div>
 
