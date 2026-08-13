@@ -1704,30 +1704,17 @@ function TarikModal({ user, onClose, onSubmit }: { user?: any; onClose: () => vo
             </>
           )}
 
-          {/* TAB: RIWAYAT */}
-          {tab === "riwayat" && (
-            <>
-              <div className="flex items-center justify-between mb-3">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Riwayat Penarikan</p>
-                <span className="text-xs font-semibold text-muted-foreground">{riwayatTarik.length} transaksi</span>
-              </div>
+    {tab === "riwayat" && (
+      <>
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Riwayat Penarikan</p>
+          <span className="text-xs font-semibold text-muted-foreground">
+            {liveTransactions ? liveTransactions.filter((t: any) => t.type === 'out').length : 0} transaksi
+          </span>
+        </div>
 
-              {/* Ringkasan */}
-              <div className="grid grid-cols-2 gap-3 mb-4">
-                <div className="bg-green-50 rounded-2xl px-4 py-3">
-                  <p className="text-xs text-green-700 mb-1">Total Disetujui</p>
-                  <p className="text-sm font-bold text-green-700">
-                    {formatRupiah(riwayatTarik.filter(r => r.status === "disetujui").reduce((s, r) => s + r.jumlah, 0))}
-                  </p>
-                </div>
-                <div className="bg-amber-50 rounded-2xl px-4 py-3">
-                  <p className="text-xs text-amber-700 mb-1">Jumlah Pengajuan</p>
-                  <p className="text-sm font-bold text-amber-700">{riwayatTarik.length}× penarikan</p>
-                </div>
-              </div>
-
-<div className="space-y-2">
-  {liveTransactions && liveTransactions.filter((t: any) => t.type === 'out').length > 0 ? (
+        <div className="space-y-2">
+          {liveTransactions && liveTransactions.filter((t: any) => t.type === 'out').length > 0 ? (
     liveTransactions
       .filter((t: any) => t.type === 'out')
       .map((t: any) => {
