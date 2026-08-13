@@ -1426,7 +1426,7 @@ const alasanOptions = [
   "Lainnya",
 ];
 
-function TarikModal({ onClose, onSubmit }: { onClose: () => void; onSubmit?: (amount: number, alasan: string) => Promise<void> }) {
+function TarikModal({ user, onClose, onSubmit }: { user?: any; onClose: () => void; onSubmit?: (amount: number, alasan: string) => Promise<void> }) {
   const [tab, setTab] = useState<TarikTab>("ajukan");
   const [amount, setAmount] = useState("");
   const [alasan, setAlasan] = useState("");
@@ -2429,13 +2429,12 @@ const [notifOpen, setNotifOpen] = useState(false);
       )}
       {bayarOpen && <BayarModal onClose={() => setBayarOpen(false)} balance={balance} onPayment={onTransaction} />}
  
-      {tarikOpen && (
-  <TarikModal 
-    onClose={() => setTarikOpen(false)} 
-    onSubmit={async (nominal, alasan) => {
-      await createPayment(nominal, "Penarikan Tunai", alasan);
+      {{tarikOpen && (
+      <TarikModal
+        user={user} 
+        onClose={() => setTarikOpen(false)}
+        onSubmit={async (nominal, alasan) => {
       
-      // Buat data notifikasi baru untuk penarikan
       const newNotif = {
         id: Date.now(),
         kategori: "transfer",
