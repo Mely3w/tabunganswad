@@ -2448,15 +2448,12 @@ const [notifOpen, setNotifOpen] = useState(false);
       <TarikModal
         user={user} 
         onClose={() => setTarikOpen(false)}
-        onSubmit={async (nominal, alasan) => {
+       onSubmit={async (nominal, alasan) => {
               try {
-                await api.createTransaction({
-                  student_id: user.id, // Pastikan ID siswa terkirim
-                  type: 'out',
-                  amount: nominal,
-                  note: alasan
-                });
-                
+                // 1. KIRIM DATA KE ADMIN MENGGUNAKAN FUNGSI YANG SUDAH DI-IMPORT
+                await createPayment(nominal, alasan);
+
+                // 2. BUAT NOTIFIKASI LOKAL UNTUK SISWA
                 const newNotif = {
                   id: Date.now(),
                   kategori: "transfer",
@@ -2472,12 +2469,13 @@ const [notifOpen, setNotifOpen] = useState(false);
                 const updatedNotifs = [newNotif, ...existingNotifs];
                 localStorage.setItem("myNotifs", JSON.stringify(updatedNotifs));
 
+                // 3. TUTUP POP-UP DAN TAMPILKAN PESAN SUKSES
                 setTarikOpen(false);
                 alert("Pengajuan penarikan berhasil dibuat dan menunggu persetujuan admin!");
 
               } catch (error) {
                 console.error("Gagal mengirim pengajuan:", error);
-                alert("Gagal mengirim pengajuan ke server. Silakan coba lagi.");
+                alert("Gagal mengirim pengajuan ke server. Pastikan koneksi aman.");
               }
             }}
   />
