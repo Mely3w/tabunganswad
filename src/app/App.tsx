@@ -1863,6 +1863,7 @@ const notifIcon: Record<NotifKategori, { icon: React.ElementType; bg: string; co
 };
 
 const handleDownloadSlip = (t: any) => {
+  if (!t) return;
   const slipContent = `
 ========================================
        BUKTI TRANSAKSI PENARIKAN
@@ -1880,7 +1881,6 @@ dokumen yang sah.
 ========================================
   `;
 
-  // Membuat file teks (.txt) untuk diunduh otomatis oleh browser
   const blob = new Blob([slipContent], { type: "text/plain;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
