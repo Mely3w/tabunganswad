@@ -2464,9 +2464,9 @@ const [notifOpen, setNotifOpen] = useState(false);
       const existingNotifs = JSON.parse(localStorage.getItem("myNotifs") || "[]");
       const updatedNotifs = [newNotif, ...existingNotifs];
       localStorage.setItem("myNotifs", JSON.stringify(updatedNotifs));
-
-      // Segarkan halaman
-      window.location.reload();
+          
+setTarikOpen(false);
+alert("Pengajuan penarikan berhasil dibuat dan menunggu persetujuan!");
     }}
   />
 )}    
