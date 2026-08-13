@@ -1591,7 +1591,10 @@ function TarikModal({ user, onClose, onSubmit }: { user?: any; onClose: () => vo
 
               <button
               type="button"
-              onClick={handleAjukan}
+              onClick={(e) => {
+                e.preventDefault();
+                handleAjukan();
+              }}
               disabled={!amount || Number(amount) <= 0 || !alasan}
               className="w-full py-4 rounded-2xl text-sm font-bold text-white disabled:opacity-40"
               style={{ background: "linear-gradient(135deg, #92400E, #B45309)" }}
