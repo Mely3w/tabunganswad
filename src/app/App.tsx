@@ -1862,6 +1862,36 @@ const notifIcon: Record<NotifKategori, { icon: React.ElementType; bg: string; co
   spp: { icon: Bell, bg: "#FEF3C7", color: "#D97706" },
 };
 
+const handleDownloadSlip = (t: any) => {
+  const slipContent = `
+========================================
+       BUKTI TRANSAKSI PENARIKAN
+            TABUNGAN SWAD
+========================================
+ID Transaksi : TRK-${t.id}
+Tanggal      : ${new Date(t.created_at).toLocaleDateString("id-ID")}
+Kategori     : ${t.category || 'Penarikan Tunai'}
+Jumlah       : ${formatRupiah(t.amount)}
+Status       : ${t.status === 'approved' ? 'DISETUJUI' : t.status === 'rejected' ? 'DITOLAK' : 'MENUNGGU'}
+----------------------------------------
+Terima kasih telah menggunakan layanan
+Tabungan Swad. Simpan bukti ini sebagai
+dokumen yang sah.
+========================================
+  `;
+
+  // Membuat file teks (.txt) untuk diunduh otomatis oleh browser
+  const blob = new Blob([slipContent], { type: "text/plain;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `Slip-Penarikan-TRK-${t.id}.txt`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+};
+
 function NotifPanel({ notifications, onNotificationsChange, onClose }: any) {
   const [filter, setFilter] = useState<"semua" | "belum">("semua");
 
@@ -3199,6 +3229,23 @@ const handleConfirmDeposit = async (amount: number) => {
       setLastUpdated(new Date());
     }
   };
+
+  <div className="flex items-center justify-between mt-2 pt-2 border-t border-border">
+  <span className="text-[10px] font-mono text-muted-foreground">TRK-{t.id}</span>
+  <div className="flex items-center gap-2">
+    <span className="text-[10px] text-muted-foreground">Kategori: {t.category || 'Penarikan Tunai'}</span>
+    
+    {/* TOMBOL DOWNLOAD SLIP */}
+    {t.status === 'approved' && (
+      <button 
+        onClick={() => handleDownloadSlip(t)}
+        className="text-[10px] bg-primary/10 text-primary font-bold px-2 py-0.5 rounded hover:bg-primary/20 transition-colors"
+      >
+        Unduh Slip
+      </button>
+    )}
+  </div>
+</div>
   
   const handleStudentLogout = () => {
     logout();
