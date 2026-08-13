@@ -1862,36 +1862,6 @@ const notifIcon: Record<NotifKategori, { icon: React.ElementType; bg: string; co
   spp: { icon: Bell, bg: "#FEF3C7", color: "#D97706" },
 };
 
-const handleDownloadSlip = (t: any) => {
-  if (!t) return;
-  const slipContent = `
-========================================
-       BUKTI TRANSAKSI PENARIKAN
-            TABUNGAN SWAD
-========================================
-ID Transaksi : TRK-${t.id}
-Tanggal      : ${new Date(t.created_at).toLocaleDateString("id-ID")}
-Kategori     : ${t.category || 'Penarikan Tunai'}
-Jumlah       : ${formatRupiah(t.amount)}
-Status       : ${t.status === 'approved' ? 'DISETUJUI' : t.status === 'rejected' ? 'DITOLAK' : 'MENUNGGU'}
-----------------------------------------
-Terima kasih telah menggunakan layanan
-Tabungan Swad. Simpan bukti ini sebagai
-dokumen yang sah.
-========================================
-  `;
-
-  const blob = new Blob([slipContent], { type: "text/plain;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = `Slip-Penarikan-TRK-${t.id}.txt`;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
-};
-
 function NotifPanel({ notifications, onNotificationsChange, onClose }: any) {
   const [filter, setFilter] = useState<"semua" | "belum">("semua");
 
@@ -3062,6 +3032,36 @@ function ProfileScreen({ user, balance, onLogout }: { user: AuthUser; balance: n
     </div>
   );
 }
+
+const handleDownloadSlip = (t: any) => {
+  if (!t) return;
+  const slipContent = `
+========================================
+       BUKTI TRANSAKSI PENARIKAN
+            TABUNGAN SWAD
+========================================
+ID Transaksi : TRK-${t.id}
+Tanggal      : ${new Date(t.created_at).toLocaleDateString("id-ID")}
+Kategori     : ${t.category || 'Penarikan Tunai'}
+Jumlah       : ${formatRupiah(t.amount)}
+Status       : ${t.status === 'approved' ? 'DISETUJUI' : t.status === 'rejected' ? 'DITOLAK' : 'MENUNGGU'}
+----------------------------------------
+Terima kasih telah menggunakan layanan
+Tabungan Swad. Simpan bukti ini sebagai
+dokumen yang sah.
+========================================
+  `;
+
+  const blob = new Blob([slipContent], { type: "text/plain;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `Slip-Penarikan-TRK-${t.id}.txt`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+};
 
 export default function App() {
   const [screen, setScreen] = useState<Screen>("home");
