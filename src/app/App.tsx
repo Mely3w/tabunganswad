@@ -1767,20 +1767,19 @@ function TarikModal({ onClose, onSubmit }: { onClose: () => void; onSubmit?: (am
         );
       })
   ) : (
-    <div className="text-center py-8 text-sm text-muted-foreground">
-      Belum ada riwayat penarikan.
+  <div className="text-center py-8 text-sm text-muted-foreground">
+            Belum ada riwayat penarikan.
+          </div>
+        )}
+      </div>
+      )}
     </div>
-  )}
-</div>
-);
-}
-</>
-  )}
-  </div>
-  </div>
-  </div>
+    </div>
+    </div>
   );
 }
+
+type NotifKategori = "setoran" | "penarikan" | "transfer" | "saldo" | "spp";
               
 type NotifKategori = "setoran" | "penarikan" | "transfer" | "saldo" | "spp";
 
