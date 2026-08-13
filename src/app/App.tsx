@@ -1430,6 +1430,7 @@ function TarikModal({ user, onClose, onSubmit }: { user?: any; onClose: () => vo
   const [tab, setTab] = useState<TarikTab>("ajukan");
   const [amount, setAmount] = useState("");
   const [alasan, setAlasan] = useState("");
+  const [liveTransactions, setLiveTransactions] = useState<any[]>([]);
   const [submitted, setSubmitted] = useState(false);
   const noRef = `TRK-${Date.now().toString().slice(-6)}`;
   const now = new Date();
