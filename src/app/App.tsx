@@ -2435,7 +2435,6 @@ const [notifOpen, setNotifOpen] = useState(false);
         positif: false,
       };
 
-      // Ambil notif lama yang ada di localStorage, lalu gabungkan dengan yang baru
       const existingNotifs = JSON.parse(localStorage.getItem("myNotifs") || "[]");
       const updatedNotifs = [newNotif, ...existingNotifs];
       localStorage.setItem("myNotifs", JSON.stringify(updatedNotifs));
@@ -3097,18 +3096,11 @@ export default function App() {
 
  const [notifications, setNotifications] = useState<any[]>([]);
 
- useEffect(() => {
-  const savedNotifs = localStorage.getItem("myNotifs");
-  if (savedNotifs) {
-    try {
-      const parsed = JSON.parse(savedNotifs);
-      // Gabungkan dengan notifikasi lain jika ada (misal dari state 'notifications')
-      setNotifications((prev: any) => [...parsed, ...prev]);
-    } catch (e) {
-      console.error("Gagal memuat notifikasi:", e);
+useEffect(() => {
+    if (currentUser && currentUser.role === "student") {
+      fetchServerData();
     }
-  }
-}, []);
+  }, [currentUser]);
   
   useEffect(() => {
     if (currentUser && currentUser.role === "student") {
