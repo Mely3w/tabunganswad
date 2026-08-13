@@ -1514,8 +1514,10 @@ function TarikModal({ onClose, onSubmit }: { onClose: () => void; onSubmit?: (am
                 </div>
                 <div className="px-4 py-3 flex items-center justify-between">
                   <div>
-                    <p className="text-xs text-muted-foreground">Abigail Nirwana</p>
-                    <p className="text-base font-bold font-mono tracking-widest" style={{ color: "#92400E" }}>1023 - 9182</p>
+                    <p className="text-xs text-muted-foreground">{currentUser?.name || "Nama Siswa"}</p>
+                    <p className="text-base font-bold font-mono tracking-widest" style={{ color: "#92400E" }}>
+                      {accountData?.account_number || "6813-4043"}
+                    </p>
                   </div>
                   <div className="text-right">
                     <p className="text-xs text-muted-foreground">Saldo tersedia</p>
@@ -1730,36 +1732,46 @@ function TarikModal({ onClose, onSubmit }: { onClose: () => void; onSubmit?: (am
               </div>
 
               <div className="space-y-2">
-                {riwayatTarik.map((r) => {
-                  const s = statusColor[r.status];
-                  return (
-                    <div key={r.id} className="rounded-2xl border border-border px-4 py-3">
-                      <div className="flex items-start justify-between mb-1">
-                        <div>
-                          <p className="text-sm font-bold text-foreground">{formatRupiah(r.jumlah)}</p>
-                          <p className="text-xs text-muted-foreground">{r.tanggal}</p>
-                        </div>
-                        <span
-                          className="text-[10px] font-bold px-2 py-1 rounded-full"
-                          style={{ backgroundColor: s.bg, color: s.text }}
-                        >
-                          {s.label}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between mt-2 pt-2 border-t border-border">
-                        <span className="text-[10px] font-mono text-muted-foreground">{r.id}</span>
-                        <span className="text-[10px] text-muted-foreground">Petugas: {r.petugas}</span>
-                      </div>
-                    </div>
-                  );
-                })}
+  {liveTransactions && liveTransactions.filter((t: any) => t.type === 'out').length > 0 ? (
+    liveTransactions
+      .filter((t: any) => t.type === 'out')
+      .map((t: any) => {
+        const isApproved = t.status === 'approved';
+        const isRejected = t.status === 'rejected';
+        const statusLabel = isApproved ? 'Disetujui' : isRejected ? 'Ditolak' : 'Menunggu';
+        const statusColor = isApproved 
+          ? { bg: '#DCFCE7', text: '#16A34A' } 
+          : isRejected 
+          ? { bg: '#FEE2E2', text: '#DC2626' } 
+          : { bg: '#FEF9C3', text: '#CA8A04' };
+
+        return (
+          <div key={t.id} className="rounded-2xl border border-border px-4 py-3">
+            <div className="flex items-start justify-between mb-1">
+              <div>
+                <p className="text-sm font-bold text-foreground">{formatRupiah(t.amount)}</p>
+                <p className="text-xs text-muted-foreground">{new Date(t.created_at).toLocaleDateString("id-ID")}</p>
               </div>
-            </>
-          )}
-        </div>
-      </div>
+              <span
+                className="text-[10px] font-bold px-2 py-1 rounded-full"
+                style={{ backgroundColor: statusColor.bg, color: statusColor.text }}
+              >
+                {statusLabel}
+              </span>
+            </div>
+            <div className="flex items-center justify-between mt-2 pt-2 border-t border-border">
+              <span className="text-[10px] font-mono text-muted-foreground">TRK-{t.id}</span>
+              <span className="text-[10px] text-muted-foreground">Kategori: {t.category || 'Penarikan Tunai'}</span>
+            </div>
+          </div>
+        );
+      })
+  ) : (
+    <div className="text-center py-8 text-sm text-muted-foreground">
+      Belum ada riwayat penarikan.
     </div>
-  );
+  )}
+</div>
 }
 
 type NotifKategori = "setoran" | "penarikan" | "transfer" | "saldo" | "spp";
