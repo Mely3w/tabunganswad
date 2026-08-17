@@ -2088,16 +2088,6 @@ const handlePaySpp = async () => {
   }
 };
 
-    setSuccessMsg(
-      `SPP ${selectedBulan.length} bulan senilai ${formatRupiah(sppTotal)} berhasil dibayar`
-    );
-
-    setStep("success");
-  } catch (error) {
-    console.error(error);
-  }
-};
-  
 const handlePayKoperasi = async () => {
   if (cartTotal > balance) return;
 
