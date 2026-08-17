@@ -2489,11 +2489,13 @@ function HomeScreen({
         />
       )}
       
-      <BayarModal
-      onClose={() => setBayarOpen(false)}
-      balance={balance}
-      onPayment={onPayment}
-    />
+      {bayarOpen && (
+  <BayarModal
+    onClose={() => setBayarOpen(false)}
+    balance={balance}
+    onPayment={onPayment}
+  />
+)}
  
       {tarikOpen && (
       <TarikModal
