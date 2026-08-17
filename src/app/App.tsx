@@ -2536,8 +2536,6 @@ function HomeScreen({
    <TabungModal
     onClose={() => setTabungOpen(false)}
     onDeposit={onDeposit}
-  />
-      }}
     />
   )}
 </div>
