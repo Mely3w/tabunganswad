@@ -179,7 +179,12 @@ app.get("/api/auth/me", authenticate, (req, res) => {
 });
 
 app.get("/api/student/account", authenticate, allowRole("student"), (req, res) => {
-  const account = db.prepare(`SELECT a.account_number, a.balance, a.updated_at, u.name, u.class_name
+  const account = db.prepare(`SELECT
+  a.account_number,
+  a.balance,
+  a.updated_at AS updatedAt,
+  u.name,
+  u.class_name
     FROM accounts a JOIN users u ON u.id = a.user_id WHERE u.id = ?`).get(req.auth.sub);
   return res.json({ account });
 });
@@ -437,45 +442,249 @@ app.post("/api/student/payment", authenticate, (req, res) => {
     return res.status(500).json({ message: "Terjadi kesalahan pada server." });
   }
 });
-app.post("/api/student/payment", authenticate, (req, res) => {
-  const { amount, category, note } = req.body;
-  const parsedAmount = Number(amount);
 
-  if (!parsedAmount || parsedAmount <= 0) {
-    return res.status(400).json({ message: "Nominal penarikan tidak valid." });
+app.post("/api/student/transfer", authenticate, allowRole("student"), (req, res) => {
+  const accountNumber = String(req.body?.accountNumber || "").trim();
+  const amount = Number(req.body?.amount);
+  const note = String(req.body?.note || "").trim();
+
+  if (!accountNumber) {
+    return res.status(400).json({
+      message: "Nomor rekening tujuan wajib diisi."
+    });
   }
 
-  const account = db.prepare("SELECT id, balance FROM accounts WHERE user_id = ?").get(req.auth.sub);
-  if (!account) {
-    return res.status(404).json({ message: "Akun tabungan tidak ditemukan." });
+  if (!Number.isFinite(amount) || amount <= 0) {
+    return res.status(400).json({
+      message: "Nominal transfer tidak valid."
+    });
   }
 
-  if (account.balance < parsedAmount) {
-    return res.status(400).json({ message: "Saldo tidak mencukupi untuk penarikan." });
+  const sender = db.prepare(`
+    SELECT
+      a.id,
+      a.account_number,
+      a.balance,
+      u.id AS user_id,
+      u.name
+    FROM accounts a
+    JOIN users u ON u.id = a.user_id
+    WHERE u.id = ?
+  `).get(req.auth.sub);
+
+  if (!sender) {
+    return res.status(404).json({
+      message: "Rekening pengirim tidak ditemukan."
+    });
+  }
+
+  const recipient = db.prepare(`
+    SELECT
+      a.id,
+      a.account_number,
+      a.balance,
+      u.id AS user_id,
+      u.name
+    FROM accounts a
+    JOIN users u ON u.id = a.user_id
+    WHERE a.account_number = ?
+      AND u.role = 'student'
+      AND u.active = 1
+  `).get(accountNumber);
+
+  if (!recipient) {
+    return res.status(404).json({
+      message: "Rekening tujuan tidak ditemukan."
+    });
+  }
+
+  if (sender.id === recipient.id) {
+    return res.status(400).json({
+      message: "Tidak dapat melakukan transfer ke rekening sendiri."
+    });
+  }
+
+  if (sender.balance < amount) {
+    return res.status(400).json({
+      message: "Saldo tidak mencukupi."
+    });
   }
 
   db.exec("BEGIN");
-  try {
-    const insertTransaction = db.prepare(`
-      INSERT INTO transactions (account_id, amount, type, category, note, status)
-      VALUES (?, ?, 'out', ?, ?, 'pending')
-    `);
-    const result = insertTransaction.run(account.id, parsedAmount, category || "Penarikan Tunai", note || "Penarikan saldo");
 
-    const transaction = db.prepare("SELECT * FROM transactions WHERE id = ?").get(result.lastInsertRowid);
+  try {
+    const senderTransaction = db.prepare(`
+      INSERT INTO transactions
+        (account_id, amount, type, category, note, status)
+      VALUES
+        (?, ?, 'out', 'Transfer Keluar', ?, 'completed')
+    `).run(
+      sender.id,
+      amount,
+      note || `Transfer ke ${recipient.name}`
+    );
+
+    db.prepare(`
+      UPDATE accounts
+      SET
+        balance = balance - ?,
+        updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `).run(amount, sender.id);
+
+    db.prepare(`
+      INSERT INTO transactions
+        (account_id, amount, type, category, note, status)
+      VALUES
+        (?, ?, 'in', 'Transfer Masuk', ?, 'completed')
+    `).run(
+      recipient.id,
+      amount,
+      note || `Transfer dari ${sender.name}`
+    );
+
+    db.prepare(`
+      UPDATE accounts
+      SET
+        balance = balance + ?,
+        updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `).run(amount, recipient.id);
+
+    const updatedSender = db.prepare(`
+      SELECT balance
+      FROM accounts
+      WHERE id = ?
+    `).get(sender.id);
+
+    const transaction = db.prepare(`
+      SELECT
+        id,
+        amount,
+        type,
+        category,
+        note,
+        status,
+        created_at
+      FROM transactions
+      WHERE id = ?
+    `).get(senderTransaction.lastInsertRowid);
 
     db.exec("COMMIT");
+
     return res.json({
-      message: "Pengajuan penarikan berhasil dikirim dan menunggu persetujuan petugas.",
-      balance: account.balance,
+      message: "Transfer berhasil.",
+      balance: updatedSender.balance,
+      recipient: {
+        name: recipient.name,
+        accountNumber: recipient.account_number,
+      },
       transaction,
     });
   } catch (error) {
-    try { db.exec("ROLLBACK"); } catch (e) {}
+    try {
+      db.exec("ROLLBACK");
+    } catch {}
+
     console.error(error);
-    return res.status(500).json({ message: "Terjadi kesalahan pada server." });
+
+    return res.status(500).json({
+      message: "Transfer gagal diproses."
+    });
   }
 });
+
+app.post("/api/student/payment", authenticate, allowRole("student"), (req, res) => {
+  const amount = Number(req.body?.amount);
+  const category = String(req.body?.category || "Pembayaran");
+  const note = String(req.body?.note || category);
+
+  if (!Number.isFinite(amount) || amount <= 0) {
+    return res.status(400).json({
+      message: "Nominal pembayaran tidak valid."
+    });
+  }
+
+  const account = db.prepare(`
+    SELECT id, balance
+    FROM accounts
+    WHERE user_id = ?
+  `).get(req.auth.sub);
+
+  if (!account) {
+    return res.status(404).json({
+      message: "Akun tabungan tidak ditemukan."
+    });
+  }
+
+  if (account.balance < amount) {
+    return res.status(400).json({
+      message: "Saldo tidak mencukupi."
+    });
+  }
+
+  db.exec("BEGIN");
+
+  try {
+    const result = db.prepare(`
+      INSERT INTO transactions
+        (account_id, amount, type, category, note, status)
+      VALUES
+        (?, ?, 'out', ?, ?, 'completed')
+    `).run(
+      account.id,
+      amount,
+      category,
+      note
+    );
+
+    db.prepare(`
+      UPDATE accounts
+      SET
+        balance = balance - ?,
+        updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `).run(amount, account.id);
+
+    const updatedAccount = db.prepare(`
+      SELECT balance
+      FROM accounts
+      WHERE id = ?
+    `).get(account.id);
+
+    const transaction = db.prepare(`
+      SELECT
+        id,
+        amount,
+        type,
+        category,
+        note,
+        status,
+        created_at
+      FROM transactions
+      WHERE id = ?
+    `).get(result.lastInsertRowid);
+
+    db.exec("COMMIT");
+
+    return res.json({
+      message: "Pembayaran berhasil.",
+      balance: updatedAccount.balance,
+      transaction,
+    });
+  } catch (error) {
+    try {
+      db.exec("ROLLBACK");
+    } catch {}
+
+    console.error(error);
+
+    return res.status(500).json({
+      message: "Pembayaran gagal diproses."
+    });
+  }
+});
+
 migrate();
 const serverPort = Number(process.env.PORT) || port;
 app.listen(serverPort, '0.0.0.0', () => {
