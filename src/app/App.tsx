@@ -2078,20 +2078,51 @@ const handlePaySpp = async () => {
 
     setStep("success");
   } catch (error) {
+    console.error("Pembayaran SPP gagal:", error);
+
+    alert(
+      error instanceof Error
+        ? error.message
+        : "Pembayaran SPP gagal."
+    );
+  }
+};
+
+    setSuccessMsg(
+      `SPP ${selectedBulan.length} bulan senilai ${formatRupiah(sppTotal)} berhasil dibayar`
+    );
+
+    setStep("success");
+  } catch (error) {
     console.error(error);
   }
 };
   
-  const handlePayKoperasi = () => {
-    if (cartTotal > balance) return;
-  await onPayment(
-  cartTotal,
-  "Pembelian",
-  "Koperasi Sekolah"
-);
-    setSuccessMsg(`Pembelian koperasi senilai ${formatRupiah(cartTotal)} berhasil dibayar`);
+ const handlePayKoperasi = async () => {
+  if (cartTotal > balance) return;
+
+  try {
+    await onPayment(
+      cartTotal,
+      "Pembelian",
+      "Koperasi Sekolah"
+    );
+
+    setSuccessMsg(
+      `Pembelian koperasi senilai ${formatRupiah(cartTotal)} berhasil dibayar`
+    );
+
     setStep("success");
-  };
+  } catch (error) {
+    console.error("Pembayaran koperasi gagal:", error);
+
+    alert(
+      error instanceof Error
+        ? error.message
+        : "Pembayaran koperasi gagal."
+    );
+  }
+};
 
   return (
     <div className="absolute inset-0 z-50 flex items-end" style={{ background: "rgba(0,0,0,0.5)" }} onClick={onClose}>
