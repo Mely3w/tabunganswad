@@ -1,21 +1,22 @@
 import React, { useEffect, useState } from "react";
 import logoBankMini from "../../logo-bank-mini.png";
 import HistoryScreen from "./components/HistoryScreen";
-import { 
-  approveTransaction, 
-  getAdminDashboard, 
-  getAdminStudents, 
-  getAdminTransactions, 
-  login, 
-  logout, 
-  setStudentStatus, 
+import {
+  approveTransaction,
+  getAdminDashboard,
+  getAdminStudents,
+  getAdminTransactions,
+  login,
+  logout,
+  setStudentStatus,
   addStudent,
   importStudents,
-  getStudentAccount, 
+  getStudentAccount,
   getStudentTransactions,
   createDeposit,
   createPayment,
-  type AuthUser
+  createTransfer,
+  type AuthUser,
 } from "./lib/api";
 import {
   Home,
@@ -2061,16 +2062,33 @@ function BayarModal({ onClose, balance, onPayment }: { onClose: () => void; bala
   const cartTotal = cart.reduce((s, c) => s + c.price * c.qty, 0);
   const sppTotal = selectedBulan.filter((b) => !b.includes("Lunas")).length * spp.amount;
 
-  const handlePaySpp = () => {
-    if (sppTotal > balance) return;
-    onPayment({ name: `Pembayaran SPP ${selectedBulan.length} bulan`, type: "out", amount: sppTotal, category: "Pembayaran SPP" });
-    setSuccessMsg(`SPP ${selectedBulan.length} bulan senilai ${formatRupiah(sppTotal)} berhasil dibayar`);
-    setStep("success");
-  };
+const handlePaySpp = async () => {
+  if (sppTotal > balance) return;
 
+  try {
+    await onPayment(
+      sppTotal,
+      "Pembayaran SPP",
+      `Pembayaran SPP ${selectedBulan.length} bulan`
+    );
+
+    setSuccessMsg(
+      `SPP ${selectedBulan.length} bulan senilai ${formatRupiah(sppTotal)} berhasil dibayar`
+    );
+
+    setStep("success");
+  } catch (error) {
+    console.error(error);
+  }
+};
+  
   const handlePayKoperasi = () => {
     if (cartTotal > balance) return;
-    onPayment({ name: "Koperasi Sekolah", type: "out", amount: cartTotal, category: "Pembelian" });
+  await onPayment(
+  cartTotal,
+  "Pembelian",
+  "Koperasi Sekolah"
+);
     setSuccessMsg(`Pembelian koperasi senilai ${formatRupiah(cartTotal)} berhasil dibayar`);
     setStep("success");
   };
@@ -2282,7 +2300,8 @@ function HomeScreen({
   transactions,
   lastUpdated,
   onRefresh,
-  onTransaction,
+  onDeposit,
+  onPayment,
   notifications,
   onNotificationsChange,
 }: {
@@ -2292,15 +2311,23 @@ function HomeScreen({
   transactions: Transaction[];
   lastUpdated: Date;
   onRefresh: () => void;
-  onTransaction: (entry: NewTransaction) => void;
+
+  onDeposit: (amount: number) => Promise<void>;
+
+  onPayment: (
+    amount: number,
+    category: string,
+    note: string
+  ) => Promise<void>;
+
   notifications: Notif[];
-  onNotificationsChange: React.Dispatch<React.SetStateAction<Notif[]>>;
+  onNotificationsChange: (notifications: Notif[]) => void;
 }) {
-  const [balanceVisible, setBalanceVisible] = useState(true);
-  const [tabungOpen, setTabungOpen] = useState(false);
-  const [bayarOpen, setBayarOpen] = useState(false);
-  const [tarikOpen, setTarikOpen] = useState(false);
-const [notifOpen, setNotifOpen] = useState(false);
+    const [balanceVisible, setBalanceVisible] = useState(true);
+    const [tabungOpen, setTabungOpen] = useState(false);
+    const [bayarOpen, setBayarOpen] = useState(false);
+    const [tarikOpen, setTarikOpen] = useState(false);
+    const [notifOpen, setNotifOpen] = useState(false);
     const [reminderOpen, setReminderOpen] = useState(false);
     const belumDibacaCount = notifications.filter((n) => !n.dibaca).length;
     const [reminderConfig, setReminderConfig] = useState<ReminderConfig>({
@@ -2339,7 +2366,6 @@ const [notifOpen, setNotifOpen] = useState(false);
         </div>
       </div>
 
-      {/* Balance Card - Menggunakan username sebagai nomor rekening dinamis */}
       <div className="mx-4 rounded-2xl overflow-hidden shadow-lg" style={{ background: "linear-gradient(135deg, #1A3A6B 0%, #2563EB 60%, #3B82F6 100%)" }}>
         <div className="px-6 pt-6 pb-4">
           <div className="flex items-center justify-between mb-1">
@@ -2379,7 +2405,6 @@ const [notifOpen, setNotifOpen] = useState(false);
 
       <QuickActions onTransfer={onTransfer} onTabung={() => setTabungOpen(true)} onBayar={() => setBayarOpen(true)} onTarik={() => setTarikOpen(true)} />
 
-      {/* Live Balance Info */}
       <div className="mx-4 mt-5 rounded-2xl border border-blue-100 bg-gradient-to-br from-blue-50 to-white px-4 py-4 shadow-sm">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
@@ -2442,7 +2467,12 @@ const [notifOpen, setNotifOpen] = useState(false);
           onClose={() => setNotifOpen(false)}
         />
       )}
-      {bayarOpen && <BayarModal onClose={() => setBayarOpen(false)} balance={balance} onPayment={onTransaction} />}
+      
+      <BayarModal
+      onClose={() => setBayarOpen(false)}
+      balance={balance}
+      onPayment={onPayment}
+    />
  
       {tarikOpen && (
       <TarikModal
@@ -2482,11 +2512,10 @@ const [notifOpen, setNotifOpen] = useState(false);
 )}    
       
       {tabungOpen && (
-    <TabungModal
-      onClose={() => setTabungOpen(false)}
-      onDeposit={async (amount) => {
-        await createDeposit(amount);
-        await onRefresh();
+   <TabungModal
+    onClose={() => setTabungOpen(false)}
+    onDeposit={onDeposit}
+  />
       }}
     />
   )}
@@ -2499,7 +2528,11 @@ function TransferScreen({
   onTransfer,
 }: {
   balance: number;
-  onTransfer: (entry: NewTransaction) => void;
+  onTransfer: (
+    accountNumber: string,
+    amount: number,
+    note: string
+  ) => Promise<void>;
 }) {
   const [step, setStep] = useState<
     "select" | "amount" | "confirm" | "success"
@@ -2521,24 +2554,31 @@ function TransferScreen({
     setStep("confirm");
   };
 
-  const handleSend = () => {
-    if (!selected) return;
+  const handleSend = async () => {
+  if (!selected) return;
 
-    const transferAmount = Number(amount);
+  const transferAmount = Number(amount);
 
-    if (!transferAmount || transferAmount <= 0) return;
+  if (!transferAmount || transferAmount <= 0) {
+    return;
+  }
 
-    if (transferAmount > balance) return;
+  if (transferAmount > balance) {
+    return;
+  }
 
-    onTransfer({
-      name: `Transfer ke ${selected.name}`,
-      type: "out",
-      amount: transferAmount,
-      category: "Transfer Keluar",
-    });
+  try {
+    await onTransfer(
+      selected.account,
+      transferAmount,
+      note
+    );
 
     setStep("success");
-  };
+  } catch (error) {
+    console.error(error);
+  }
+};
 
   const handleReset = () => {
     setStep("select");
@@ -3138,25 +3178,90 @@ export default function App() {
     console.error("Gagal mengambil data dari server", error);
   }
 };  
- const applyTransaction = (transactionData: any) => {
-  setLiveTransactions((prev) => [transactionData, ...prev]);
-  const isIn = transactionData.type === "in";
-  const newNotif: Notif = {
-    id: Date.now(),
-    kategori: isIn ? "setoran" : "transfer",
-    judul: isIn ? "Transaksi Masuk Berhasil" : "Transaksi Keluar Berhasil",
-    pesan: transactionData.name || `${transactionData.category} senilai ${formatRupiah(transactionData.amount)} berhasil diproses.`,
-    waktu: "Baru saja",
-    dibaca: false,
-    nominal: transactionData.amount,
-    positif: isIn,
-  };
+const reloadStudentData = async () => {
+  try {
+    const [accountResult, transactionResult] = await Promise.all([
+      getStudentAccount(),
+      getStudentTransactions(),
+    ]);
 
-  setNotifications((prev) => [newNotif, ...prev]);
+    setBalance(accountResult.account.balance);
 
-  console.log("Transaksi dan Notifikasi berhasil disinkronkan:", transactionData);
+    setLastUpdated(
+      new Date(accountResult.account.updatedAt)
+    );
+
+    const mappedTransactions: Transaction[] =
+      transactionResult.transactions.map((tx) => ({
+        id: tx.id,
+        name: tx.note || tx.category,
+        type: tx.type,
+        amount: tx.amount,
+        date: tx.created_at,
+        category: tx.category,
+      }));
+
+    setLiveTransactions(mappedTransactions);
+
+  } catch (error) {
+    console.error(
+      "Gagal memuat ulang data siswa:",
+      error
+    );
+  }
 };
 
+const handleStudentDeposit = async (amount: number) => {
+  try {
+    await createDeposit(amount);
+    await reloadStudentData();
+
+    alert("Setoran berhasil disimpan.");
+  } catch (error: any) {
+    alert(error.message || "Setoran gagal.");
+  }
+};
+
+const handleStudentPayment = async (
+  amount: number,
+  category: string,
+  note: string
+) => {
+  try {
+    await createPayment(
+      amount,
+      category,
+      note
+    );
+
+    await reloadStudentData();
+
+    alert("Pembayaran berhasil dan saldo telah diperbarui.");
+  } catch (error: any) {
+    alert(error.message || "Pembayaran gagal.");
+  }
+};
+
+const handleStudentTransfer = async (
+  accountNumber: string,
+  amount: number,
+  note: string
+) => {
+  try {
+    await createTransfer(
+      accountNumber,
+      amount,
+      note
+    );
+
+    await reloadStudentData();
+
+    alert("Transfer berhasil.");
+  } catch (error: any) {
+    alert(error.message || "Transfer gagal.");
+  }
+};
+  
   const [lastUpdated, setLastUpdated] =
     useState(new Date());
 
@@ -3177,19 +3282,16 @@ useEffect(() => {
 const handleConfirmDeposit = async (amount: number) => {
   try {
     await createDeposit(amount);
-    
-    if (typeof refreshBalance === "function") {
-      await refreshBalance();
-    }
 
-    const txData = await getStudentTransactions();
-    if (txData && txData.transactions) {
-      setLiveTransactions(txData.transactions);
-    }
+    await reloadStudentData();
 
-    alert("Setoran berhasil diproses dan disinkronkan ke server!");
+    alert("Setoran berhasil dan data telah diperbarui.");
   } catch (error: any) {
-    alert(error.message || "Gagal melakukan setoran");
+    console.error("Gagal melakukan setoran:", error);
+
+    alert(
+      error?.message || "Gagal melakukan setoran."
+    );
   }
 };
   useEffect(() => {
@@ -3241,7 +3343,6 @@ const handleConfirmDeposit = async (amount: number) => {
 
       setLiveTransactions(mappedTransactions);
 
-      // Tambahkan notifikasi otomatis jika ada transaksi terbaru
       if (transactionResult.transactions.length > 0) {
         const latestTx = transactionResult.transactions[0];
         const newNotif: Notif = {
@@ -3319,26 +3420,25 @@ const handleConfirmDeposit = async (amount: number) => {
         {/* Screen content */}
         <div className="absolute inset-0 overflow-hidden">
          {screen === "home" && (
-            <HomeScreen
-              user={currentUser}
-              onTransfer={() =>
-                setScreen("transfer")
-              }
-              balance={balance}
-              transactions={liveTransactions}
-              lastUpdated={lastUpdated}
-              onRefresh={refreshBalance}
-              onTransaction={applyTransaction}
-              notifications={notifications}
-              onNotificationsChange={setNotifications}
-            />
-          )}
+           <HomeScreen
+            user={currentUser}
+            onTransfer={() => setScreen("transfer")}
+            balance={balance}
+            transactions={liveTransactions}
+            lastUpdated={lastUpdated}
+            onRefresh={reloadStudentData}
+            onDeposit={handleStudentDeposit}
+            onPayment={handleStudentPayment}
+            notifications={notifications}
+            onNotificationsChange={setNotifications}
+          />
+      )}
 
           {screen === "transfer" && (
             <TransferScreen
-              balance={balance}
-              onTransfer={applyTransaction}
-            />
+            balance={balance}
+            onTransfer={handleStudentTransfer}
+          />
           )}
 
           {screen === "history" && (
